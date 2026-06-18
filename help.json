@@ -1,0 +1,94 @@
+{
+  "title": "War Bells",
+  "children": [
+    {
+      "title": "Overview",
+      "lines": [
+        "Granular / glitch /",
+        "delay / looper FX.",
+        "Pick an Effect +",
+        "Variation, then",
+        "shape with the 8",
+        "knobs. Hold sampler,",
+        "reverb, filter and a",
+        "60s looper built in."
+      ]
+    },
+    {
+      "title": "Knobs",
+      "lines": [
+        "1 Effect",
+        "2 Variation",
+        "3 Activity (density)",
+        "4 Repeats (length)",
+        "5 Shape (tone)",
+        "6 Mix (dry/wet)",
+        "7 Space (reverb)",
+        "8 Filter (lowpass)"
+      ]
+    },
+    {
+      "title": "Effects",
+      "lines": [
+        "Loops: Glide, Seq,",
+        " Stack",
+        "Grains: Cloud,",
+        " Drone, Chain",
+        "Glitch: Arp, Cutup,",
+        " Chop",
+        "Delays: Taps, Warp",
+        "",
+        "Variation re-labels",
+        "per effect (oct+,",
+        "line, casc, etc)."
+      ]
+    },
+    {
+      "title": "Pages",
+      "lines": [
+        "Tone: cutoff reso",
+        " fx-vol",
+        "Time: tempo subdiv",
+        "Space FX: reverb",
+        " mod depth/rate",
+        "Perform: reverse",
+        " hold",
+        "Looper / Looper 2",
+        "User Slots: save",
+        "Config: in, bypass"
+      ]
+    },
+    {
+      "title": "Saving",
+      "lines": [
+        "User Slots page:",
+        "pick User Slot 1-16,",
+        "then User Op:",
+        "Save / Load / Del.",
+        "",
+        "Save stores all",
+        "params AND the",
+        "recorded loop.",
+        "",
+        "Whole-chain patches",
+        "save via Schwung",
+        "Manager too."
+      ]
+    },
+    {
+      "title": "Tips",
+      "lines": [
+        "Mix at 100% lets",
+        "glitch fully cut",
+        "the dry signal.",
+        "",
+        "Filter full up =",
+        "wide open.",
+        "",
+        "Hold freezes the",
+        "last moment into a",
+        "sustained bed."
+      ]
+    }
+  ]
+}

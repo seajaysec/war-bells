@@ -1,0 +1,6 @@
+/research/
+/dist/
+/build/
+*.o
+*.so
+.DS_Store

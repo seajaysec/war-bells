@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>War Bells — Web Synth &amp; Manual</title>
+<style>
+  /* ---------- theme tokens (auto light/dark + manual override) ---------- */
+  :root{
+    --amber:#ff9e2c; --teal:#1fb8ac; --pink:#ff5f8d; --violet:#8a6bff;
+    --loops:var(--teal); --grains:var(--amber); --glitch:var(--pink); --delays:var(--violet);
+    --bg:#0b0c10; --bg2:#10121a; --panel:#15171f; --panel2:#1d2030; --line:#2a2e3f;
+    --ink:#e9ecf3; --dim:#9aa3b8; --hi:#ffffff; --oled:#cfeede; --oledbg:#0a120e;
+    --shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --amber:#c9690a; --teal:#0c8c82; --pink:#d83a68; --violet:#6a4be0;
+      --bg:#f4f5f8; --bg2:#eceef4; --panel:#ffffff; --panel2:#f0f2f7; --line:#d8dce6;
+      --ink:#1a1d27; --dim:#5b6479; --hi:#000; --oled:#0b3a30; --oledbg:#dff3ea;
+      --shadow:0 18px 44px rgba(20,28,60,.14);
+    }
+  }
+  :root[data-theme="dark"]{
+    --amber:#ff9e2c; --teal:#1fb8ac; --pink:#ff5f8d; --violet:#8a6bff;
+    --bg:#0b0c10; --bg2:#10121a; --panel:#15171f; --panel2:#1d2030; --line:#2a2e3f;
+    --ink:#e9ecf3; --dim:#9aa3b8; --oled:#cfeede; --oledbg:#0a120e; --shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"]{
+    --amber:#c9690a; --teal:#0c8c82; --pink:#d83a68; --violet:#6a4be0;
+    --bg:#f4f5f8; --bg2:#eceef4; --panel:#ffffff; --panel2:#f0f2f7; --line:#d8dce6;
+    --ink:#1a1d27; --dim:#5b6479; --oled:#0b3a30; --oledbg:#dff3ea; --shadow:0 18px 44px rgba(20,28,60,.14);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 78% -12%,color-mix(in srgb,var(--violet) 16%,transparent) 0,transparent 60%),
+      radial-gradient(900px 500px at 5% 0%,color-mix(in srgb,var(--teal) 12%,transparent) 0,transparent 55%),
+      var(--bg);
+    color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 120px}
+
+  /* ---------- sticky synth panel ---------- */
+  .synthbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);
+    background:color-mix(in srgb,var(--bg) 86%,transparent);border-bottom:1px solid var(--line)}
+  .synthbar .inner{max-width:1080px;margin:0 auto;padding:10px 18px 12px}
+  .statusrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+  .brand{font-weight:800;letter-spacing:-.01em;font-size:18px;
+    background:linear-gradient(120deg,var(--amber),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .status{display:inline-flex;align-items:center;gap:7px;color:var(--dim)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 0 transparent}
+  .dot.live{background:#36d399;box-shadow:0 0 10px #36d39988}
+  .dot.demo{background:var(--amber)}
+  .dot.err{background:var(--pink)}
+  .grow{flex:1}
+  .mini{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+    padding:5px 10px;font-size:13px;cursor:pointer}
+  .mini:hover{border-color:var(--teal)}
+  input.host{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+    padding:5px 9px;font:13px ui-monospace,monospace;width:150px}
+
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:10px}
+  @media(max-width:820px){.hero{grid-template-columns:1fr}}
+  .glass{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .padbox{padding:14px}
+  .pick{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+  select.sel{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 9px;font-size:14px}
+  .vchip{font:12px ui-monospace,monospace;color:var(--oled);background:var(--oledbg);border:1px solid var(--line);
+    border-radius:999px;padding:3px 9px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tabs button{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer}
+  .tabs button.on{background:var(--teal);color:#042b27;border-color:var(--teal);font-weight:700}
+  .knobs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:520px){.knobs{grid-template-columns:repeat(2,1fr)}}
+  .knob{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .knob .dial{width:54px;height:54px;border-radius:50%;position:relative;cursor:ns-resize;touch-action:none;
+    background:radial-gradient(circle at 38% 30%,color-mix(in srgb,var(--panel2) 70%,#fff 6%),var(--panel2));
+    border:1px solid var(--line);box-shadow:inset 0 -6px 12px rgba(0,0,0,.18)}
+  .knob .dial.empty{opacity:.25;cursor:default}
+  .knob .dial .ind{position:absolute;left:50%;top:5px;width:2px;height:19px;background:var(--amber);
+    transform-origin:50% 22px;border-radius:2px}
+  .knob .lab{font-size:11px;color:var(--dim);text-align:center;line-height:1.15;height:26px}
+  .knob .val{font:11px ui-monospace,monospace;color:var(--oled)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--dim);background:var(--panel2)}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  canvas#harm{width:100%;height:170px;display:block;border-radius:12px;background:var(--oledbg);border:1px solid var(--line)}
+  .nowline{font-size:12.5px;color:var(--dim);margin-top:8px;min-height:18px}
+
+  /* ---------- nav ---------- */
+  nav.toc{position:sticky;top:0;z-index:40}
+  .tocbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:10px 0}
+  .tocbar a{font-size:12.5px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 11px;background:color-mix(in srgb,var(--bg) 80%,transparent)}
+  .tocbar a:hover{color:var(--teal);border-color:var(--teal);text-decoration:none}
+  .navtoggle{display:none}
+  @media(max-width:760px){
+    .navtoggle{display:inline-block;margin:8px auto;text-align:center}
+    .tocbar{display:none;flex-direction:column;align-items:stretch}
+    .tocbar.open{display:flex}
+  }
+
+  /* ---------- content ---------- */
+  header.intro{padding:34px 0 6px;text-align:center}
+  header.intro h1{font-size:46px;margin:.1em 0;letter-spacing:-.02em;
+    background:linear-gradient(120deg,var(--amber),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+  header.intro p{color:var(--dim);max-width:640px;margin:6px auto 0}
+  h2{font-size:27px;margin:56px 0 6px;letter-spacing:-.01em}
+  h2 .num{color:var(--amber);font-variant-numeric:tabular-nums;margin-right:8px;font-size:.7em}
+  h3{font-size:18px;margin:22px 0 4px}
+  p{color:var(--ink)}
+  .lead{font-size:17.5px;color:var(--ink)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+  .muted{color:var(--dim);font-size:14px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .tip{border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 9%,transparent);
+    border-radius:0 12px 12px 0;padding:11px 15px;margin:13px 0;font-size:15px}
+  .tip b{color:var(--amber)}
+  kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font:13px ui-monospace,monospace}
+  .fx{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel);cursor:pointer;transition:transform .08s}
+  .fx:hover{transform:translateY(-2px)}
+  .fx .nm{font-size:17px;font-weight:700}
+  .fx .mc{font-size:12px;color:var(--dim)}
+  .fx ol{margin:7px 0 0;padding-left:18px;font-size:13px;color:var(--ink)}
+  .fx ol li b{color:var(--oled)}
+  .catdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  /* inline control widget */
+  .ictl{display:inline-flex;align-items:center;gap:7px;vertical-align:middle;
+    background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 5px 3px 11px;margin:0 2px}
+  .ictl label{font-size:12px;color:var(--dim)}
+  .ictl input[type=range]{width:96px;accent-color:var(--teal)}
+  .ictl select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:7px;font-size:12px;padding:2px 4px}
+  .ictl .iv{font:11px ui-monospace,monospace;color:var(--oled);min-width:40px;text-align:right}
+  table.cc{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.cc th,table.cc td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  table.cc th{color:var(--amber)}
+  code.url{font:12.5px ui-monospace,monospace;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;word-break:break-all}
+  footer{margin-top:70px;border-top:1px solid var(--line);padding-top:20px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- ============ STICKY SYNTH PANEL ============ -->
+<div class="synthbar">
+ <div class="inner">
+  <div class="statusrow">
+    <span class="brand">War Bells</span>
+    <span class="status"><span class="dot" id="dot"></span><span id="statusText">starting…</span></span>
+    <span class="grow"></span>
+    <input class="host" id="hostInput" placeholder="move.local:7700" title="device host:port">
+    <button class="mini" id="connectBtn">Connect</button>
+    <button class="mini" id="themeBtn" title="theme">◐</button>
+  </div>
+  <div class="hero">
+    <div class="glass padbox">
+      <div class="pick">
+        <select class="sel" id="effSel" title="Effect"></select>
+        <select class="sel" id="varSel" title="Variation"></select>
+        <span class="vchip" id="catChip">—</span>
+      </div>
+      <div class="tabs" id="tabs"></div>
+      <div class="knobs" id="knobRow"></div>
+      <div class="chips" id="presetChips"></div>
+      <div class="nowline" id="nowLine"></div>
+    </div>
+    <div class="glass padbox">
+      <canvas id="harm" width="900" height="340"></canvas>
+      <div class="muted" style="margin-top:8px">Harmonics &amp; grain field — driven by Activity, Shape,
+        Grain&nbsp;Env, Mix, Space and the effect family. Live values flow in when connected to your Move.</div>
+    </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ NAV ============ -->
+<nav class="toc">
+  <div class="wrap" style="padding-bottom:0">
+    <div class="navtoggle"><button class="mini" id="navBtn">Sections ▾</button></div>
+    <div class="tocbar" id="tocbar">
+      <a href="#idea">Idea</a><a href="#effects">Effects</a><a href="#macros">Macros</a>
+      <a href="#grain">Grain env</a><a href="#time">Time</a><a href="#space">Space</a>
+      <a href="#presets">Presets</a><a href="#perform">Perform</a><a href="#looper">Looper</a>
+      <a href="#user">User slots</a><a href="#midi">MIDI</a><a href="#web">Web control</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+<header class="intro">
+  <h1>The interactive manual</h1>
+  <p>Granular · glitch · delay · looper multi-effect for the Ableton Move. The panel above is a live
+  synth — and every control named in these docs can be nudged inline, right where it's explained.</p>
+</header>
+
+<section id="idea">
+  <h2><span class="num">01</span>What it does</h2>
+  <p class="lead">War Bells chops whatever runs through it into tiny pieces and rebuilds them — as
+  shimmering loops, grain clouds, glitchy stutters, or rhythmic delays — then sweetens the result with
+  pitch wobble, reverb, a filter, and a 60-second looper.</p>
+  <div class="tip">Twist <span class="ictl" data-k="activity"></span> and <span class="ictl" data-k="shape"></span>
+   — the panel up top and the harmonics react instantly (and so does your Move, when connected).</div>
+</section>
+
+<section id="effects">
+  <h2><span class="num">02</span>The eleven effects</h2>
+  <p class="lead">Four families, each with four named variations. Tap a card to load it.</p>
+  <div class="grid" id="catLegend" style="grid-template-columns:repeat(4,1fr);margin:6px 0 14px"></div>
+  <div class="grid g2" id="fxGrid"></div>
+  <div class="tip">Pick effect + variation here too:
+   <span class="ictl" data-k="effect"></span> <span class="ictl" data-k="variation"></span></div>
+  <h3>See it: a grain cloud</h3>
+  <p>This visualiser reacts to <b>Activity</b> (how many grains), <b>Shape</b> (their size) and the
+  effect family's colour. Twist the knobs above (or the inline ones) and watch.</p>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <canvas id="grains" width="920" height="170" style="width:100%;height:auto;display:block;background:var(--oledbg)"></canvas>
+  </div>
+</section>
+
+<section id="macros">
+  <h2><span class="num">03</span>The macro knobs</h2>
+  <p class="lead">Eight root knobs: the first two pick the sound, the rest shape it. Each re-interprets
+  per effect — <b>Activity</b> = more of the effect's thing; <b>Repeats</b> = how long it rings on.</p>
+  <div class="grid g3">
+    <div class="panel"><h3>Activity</h3><p>Density / complexity.</p><span class="ictl" data-k="activity"></span></div>
+    <div class="panel"><h3>Repeats</h3><p>How long it sustains.</p><span class="ictl" data-k="repeats"></span></div>
+    <div class="panel"><h3>Shape</h3><p>Tone &amp; contour.</p><span class="ictl" data-k="shape"></span></div>
+    <div class="panel"><h3>Mix</h3><p>Dry vs. effect (100% can fully cut the dry).</p><span class="ictl" data-k="mix"></span></div>
+    <div class="panel"><h3>Space</h3><p>Reverb + delay wash.</p><span class="ictl" data-k="space"></span></div>
+    <div class="panel"><h3>Filter</h3><p>Resonant low-pass; full = open.</p><span class="ictl" data-k="filter"></span></div>
+  </div>
+</section>
+
+<section id="grain">
+  <h2><span class="num">04</span>Grain envelope</h2>
+  <p class="lead">On the Tone page, <b>Grain Env</b> sets each grain's volume shape — a small control with
+  a big character change. <span class="ictl" data-k="grain_env"></span></p>
+  <div class="grid g4">
+    <div class="panel"><h3>Soft</h3><p>Smooth fade — round, clickless (default).</p></div>
+    <div class="panel"><h3>Pluck</h3><p>Abrupt onset then fade — percussive.</p></div>
+    <div class="panel"><h3>Swell</h3><p>Ramps up — the reverse feel.</p></div>
+    <div class="panel"><h3>Gate</h3><p>Flat on/off — gated, stuttery.</p></div>
+  </div>
+</section>
+
+<section id="time">
+  <h2><span class="num">05</span>Time &amp; tempo</h2>
+  <p class="lead">Loops, grains and delays retrigger in time. <b>Subdiv</b> sets how fast relative to the
+  beat. <b>Clock</b> picks the source: <span class="ictl" data-k="tempo_src"></span></p>
+  <div class="grid g3">
+    <div class="panel"><h3>Free <span class="muted">(default)</span></h3><p>Free-running internal tempo that
+      drifts gently — breathes, never locks. A free-running, never-quite-locked feel.</p></div>
+    <div class="panel"><h3>Sync</h3><p>Locks hard to the Move's host clock.</p></div>
+    <div class="panel"><h3>Man</h3><p>Fixed BPM via <b>Tempo</b>. <span class="ictl" data-k="tempo"></span></p></div>
+  </div>
+  <p class="muted">Subdivision: <span class="ictl" data-k="subdiv"></span></p>
+</section>
+
+<section id="space">
+  <h2><span class="num">06</span>Space &amp; reverb</h2>
+  <p class="lead">The <b>Space</b> knob blends a delay + reverb tail. Four rooms:
+   <span class="ictl" data-k="reverb_mode"></span></p>
+  <div class="grid g4" id="revGrid"></div>
+  <div class="tip">Pitch mod lives here too — <span class="ictl" data-k="mod_depth"></span>
+   <span class="ictl" data-k="mod_rate"></span> from gentle chorus to seasick wobble.</div>
+</section>
+
+<section id="presets">
+  <h2><span class="num">07</span>Character presets</h2>
+  <p class="lead">One tap sets effect + all macros to a curated character: <span class="ictl" data-k="preset"></span></p>
+  <div class="grid g4" id="presetGrid"></div>
+</section>
+
+<section id="perform">
+  <h2><span class="num">08</span>Perform</h2>
+  <div class="grid g3">
+    <div class="panel"><h3>Reverse</h3><p>Backwards grain/loop playback.</p><span class="ictl" data-k="reverse"></span></div>
+    <div class="panel"><h3>Hold</h3><p>Freezes the last moment into an endless bed.</p><span class="ictl" data-k="hold"></span></div>
+    <div class="panel"><h3>Hold Mode</h3><p>Latch (toggles) vs Gate (while held).</p><span class="ictl" data-k="hold_style"></span></div>
+  </div>
+</section>
+
+<section id="looper">
+  <h2><span class="num">09</span>The 60-second looper</h2>
+  <p class="lead">Record, overdub, reverse, re-speed, save. Transport:
+   <span class="ictl" data-k="transport"></span></p>
+  <div class="grid g3">
+    <div class="panel"><h3>Level &amp; Speed</h3><span class="ictl" data-k="loop_level"></span>
+      <span class="ictl" data-k="loop_speed"></span></div>
+    <div class="panel"><h3>Route &amp; Op</h3><span class="ictl" data-k="loop_route"></span>
+      <span class="ictl" data-k="loop_order"></span></div>
+    <div class="panel"><h3>Quantize · Burst</h3><span class="ictl" data-k="loop_quantize"></span>
+      <span class="ictl" data-k="loop_burst"></span></div>
+  </div>
+</section>
+
+<section id="user">
+  <h2><span class="num">10</span>User preset slots</h2>
+  <p class="lead">Save your own sounds — params <i>and</i> the recorded loop — to 16 on-device slots.
+   Pick <span class="ictl" data-k="user_slot"></span> then <span class="ictl" data-k="user_op"></span>.</p>
+  <div class="grid g3">
+    <div class="panel"><h3>Save</h3><p>Writes all params + loop to the slot.</p></div>
+    <div class="panel"><h3>Load</h3><p>Recalls params + loop, arms the looper.</p></div>
+    <div class="panel"><h3>Del</h3><p>Clears the slot.</p></div>
+  </div>
+</section>
+
+<section id="midi">
+  <h2><span class="num">11</span>Config &amp; MIDI</h2>
+  <div class="grid g3">
+    <div class="panel"><h3>Input</h3><span class="ictl" data-k="input_mode"></span>
+      <span class="ictl" data-k="input_gain"></span></div>
+    <div class="panel"><h3>Bypass</h3><span class="ictl" data-k="bypass"></span>
+      <span class="ictl" data-k="bypass_style"></span></div>
+    <div class="panel"><h3>Tone extras</h3><span class="ictl" data-k="filter_res"></span>
+      <span class="ictl" data-k="effect_vol"></span></div>
+  </div>
+  <table class="cc">
+    <tr><th>CC</th><th>Controls</th><th>CC</th><th>Controls</th></tr>
+    <tr><td>6</td><td>Activity</td><td>15</td><td>Resonance</td></tr>
+    <tr><td>7</td><td>Shape</td><td>16</td><td>FX Vol</td></tr>
+    <tr><td>8</td><td>Filter</td><td>19</td><td>Mod Depth</td></tr>
+    <tr><td>9</td><td>Mix</td><td>20</td><td>Reverb</td></tr>
+    <tr><td>11</td><td>Repeats</td><td>22</td><td>Looper</td></tr>
+    <tr><td>12</td><td>Space</td><td>28–35</td><td>Transport</td></tr>
+    <tr><td colspan="4" class="muted">Program Change selects effect + variation (effect = PC÷4, var = PC mod 4).</td></tr>
+  </table>
+</section>
+
+<section id="web">
+  <h2><span class="num">12</span>Web control</h2>
+  <p class="lead">This page is dual-purpose. Served from GitHub Pages it's an interactive demo + manual.
+  Opened <b>from your Move</b> it becomes a live controller of the real plugin.</p>
+  <div class="panel">
+    <p><b>Go live:</b> with War Bells loaded in a chain slot, open this page from the device:</p>
+    <p><code class="url">http://move.local:7700/api/remote-ui/module-assets/war_bells/web_ui.html</code></p>
+    <p class="muted">It connects to the Schwung Manager's WebSocket, finds War Bells in your slots, and
+    every control here drives the DSP — while hardware-knob moves flow back into this page. (Live control
+    needs an http origin; an https page can't open an insecure socket, so the Pages copy stays in demo mode.)</p>
+  </div>
+</section>
+
+<footer>
+  <p><b>War Bells</b> — a granular · glitch · delay · looper multi-effect for the Ableton Move,
+  built via the open-source <a href="https://github.com/charlesvestal/schwung">Schwung</a> framework.
+  <a href="https://github.com/seajaysec/war-bells">Source</a>.</p>
+</footer>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   War Bells web UI — single file. Demo simulation + live device control.
+   Mirrors src/dsp/effects.c + params.c. Live bridge talks to schwung-manager
+   /ws/remote-ui (verified wire format).
+   ========================================================================= */
+
+/* ---------- effect + preset data ---------- */
+const EFFECTS=[
+ {n:"Arp",cat:"Glitch",act:"arpeggio steps",vl:["basic","spds","filt","crush"],
+  v:["basic arpeggios of recent notes","varied playback speeds","random filter per step","bit-crushed arpeggios"]},
+ {n:"Cutup",cat:"Glitch",act:"amount of variation",vl:["cuts","pitch","sweep","crush"],
+  v:["glitches interrupt the live signal","pitch-shifted interruptions","filter sweeps + delay","bit-crush + manipulation"]},
+ {n:"Chop",cat:"Glitch",act:"amount of variation",vl:["runs","pitch","soft","crush"],
+  v:["rearranges + sequenced runs","rearranges + pitch-shifts","softer filtered glitch","pitch-shift + bit-crush"]},
+ {n:"Glide",cat:"Loops",act:"rate of pitch-shifting",vl:["half","down","up","both"],
+  v:["glides half ↔ normal","glides double ↔ half","glides normal ↔ double","glides both directions"]},
+ {n:"Seq",cat:"Loops",act:"filter variation / layers",vl:["filt","half","sweep","crush"],
+  v:["filtered random rhythms","alternates normal / half","overlapping + filter sweeps","interlocking + bit-crush"]},
+ {n:"Stack",cat:"Loops",act:"active loopers",vl:["oct+","oct-","x2","range"],
+  v:["normal + double (oct up)","normal + half (oct down)","all loops double speed","half/normal/double/quad"]},
+ {n:"Cloud",cat:"Grains",act:"grain density & spread",vl:["short","dense","hi","lo"],
+  v:["short diffused stretches","many randomized grains","normal + double grains","normal + half grains"]},
+ {n:"Drone",cat:"Grains",act:"depth of each modifier",vl:["morph","sub","bpf","env"],
+  v:["drone length morphs","sub-octave + sweeps","resonant bandpass drone","envelope length mod"]},
+ {n:"Chain",cat:"Grains",act:"density of pattern",vl:["hold","phase","casc","casc2"],
+  v:["repeats recent note","overlapping phasing","cascading chains","cascades + double grains"]},
+ {n:"Taps",cat:"Delays",act:"active delay taps",vl:["line","swng","trip","wide"],
+  v:["linear, even-spaced taps","syncopated / swung","triplet-feel","wide, spread-out"]},
+ {n:"Warp",cat:"Delays",act:"active delay taps",vl:["env","bpf","pitch","grain"],
+  v:["envelope filter per tap","resonant bandpass taps","pitch-shifted taps","taps + double-speed grains"]},
+];
+const CATS={Loops:{c:"var(--loops)",h:168,d:"loops at various speeds"},Grains:{c:"var(--grains)",h:38,d:"clouds of fragments"},
+ Glitch:{c:"var(--glitch)",h:336,d:"real-time rearrangement"},Delays:{c:"var(--delays)",h:266,d:"multi-tap echoes"}};
+const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large & lush"],["Vast","endless wash"]];
+const PRESETS=[
+ {n:"Init",d:"clean default",s:{effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15,filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,reverb_mode:0,grain_env:0,reverse:0}},
+ {n:"Erase",d:"lingering slapback",s:{effect:7,variation:0,activity:.15,repeats:.85,shape:.45,mix:.6,effect_vol:.8,space:.25,filter:1,mod_depth:.1,reverb_mode:1,grain_env:0,reverse:0}},
+ {n:"Edit",d:"edited-in-post",s:{effect:7,variation:0,activity:.4,repeats:.5,shape:.5,mix:.6,effect_vol:.8,space:.45,filter:1,mod_depth:.2,reverb_mode:2,grain_env:2,reverse:0}},
+ {n:"Chor",d:"lush mod chorus",s:{effect:6,variation:0,activity:.15,repeats:.3,shape:.5,mix:.5,effect_vol:.25,space:.1,mod_depth:.85,mod_rate:.55,reverb_mode:0,grain_env:0,reverse:0}},
+ {n:"Shimr",d:"reverse shimmer",s:{effect:10,variation:2,activity:.6,repeats:.5,shape:.6,mix:1,effect_vol:.9,space:.7,reverb_mode:2,reverse:1,grain_env:2}},
+ {n:"Birds",d:"reverse onsets",s:{effect:8,variation:3,activity:.75,repeats:.4,shape:.4,mix:.8,effect_vol:.9,space:.2,reverse:1,grain_env:1}},
+ {n:"Glass",d:"octave glide",s:{effect:3,variation:2,activity:.8,repeats:.4,shape:.6,mix:1,effect_vol:.9,space:.4,grain_env:0,reverse:0}},
+ {n:"Pad",d:"murky wash",s:{effect:6,variation:1,activity:.6,repeats:.8,shape:.5,mix:.8,effect_vol:.8,space:.5,mod_depth:.35,grain_env:0,reverse:0}},
+];
+
+/* ---------- param model (mirrors chain_params) ---------- */
+const P={
+ preset:{name:"Preset",t:"enum",o:PRESETS.map(p=>p.n),v:0},
+ effect:{name:"Effect",t:"enum",o:EFFECTS.map(e=>e.n),v:5},
+ variation:{name:"Var",t:"var",v:0},
+ activity:{name:"Activity",t:"pct",v:.3},repeats:{name:"Repeats",t:"pct",v:.4},
+ shape:{name:"Shape",t:"pct",v:.4},mix:{name:"Mix",t:"pct",v:.7},
+ space:{name:"Space",t:"pct",v:.15},filter:{name:"Filter",t:"pct",v:1},
+ filter_res:{name:"Reso",t:"pct",v:.1},effect_vol:{name:"FX Vol",t:"pct",v:.7},
+ grain_env:{name:"Grain Env",t:"enum",o:["Soft","Pluck","Swell","Gate"],v:0},
+ reverse:{name:"Reverse",t:"enum",o:["Off","On"],v:0},
+ tempo_src:{name:"Clock",t:"enum",o:["Free","Sync","Man"],v:0},
+ subdiv:{name:"Subdiv",t:"enum",o:["1/4","1/2","1x","2x","4x","8x"],v:2},
+ tempo:{name:"Tempo",t:"bpm",v:110,min:20,max:300},
+ reverb_mode:{name:"Reverb",t:"enum",o:["Room","Dark","Hall","Vast"],v:0},
+ mod_depth:{name:"Mod Dep",t:"pct",v:0},mod_rate:{name:"Mod Rate",t:"pct",v:.4},
+ hold:{name:"Hold",t:"enum",o:["Off","On"],v:0},hold_style:{name:"Hold Md",t:"enum",o:["Latch","Gate"],v:0},
+ looper_on:{name:"Looper",t:"enum",o:["Off","On"],v:0},
+ transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase","Undo","Save","Load"],v:0},
+ loop_reverse:{name:"Lp Rev",t:"enum",o:["Off","On"],v:0},
+ loop_level:{name:"Lp Level",t:"pct",v:.9},loop_fade:{name:"Lp Fade",t:"pct",v:.1},
+ loop_fademode:{name:"Fade",t:"enum",o:["Both","In","Out"],v:0},
+ loop_speed:{name:"Lp Speed",t:"x",v:1,min:.25,max:4},
+ loop_route:{name:"Route",t:"enum",o:["Post","Pre"],v:0},
+ loop_order:{name:"Op",t:"enum",o:["Std","Dub1"],v:0},
+ loop_quantize:{name:"Quantize",t:"enum",o:["Off","On"],v:0},
+ loop_only:{name:"Lp Only",t:"enum",o:["Off","On"],v:0},
+ loop_burst:{name:"Burst",t:"enum",o:["Off","On"],v:0},
+ user_slot:{name:"User Slot",t:"int",v:1,min:1,max:16},
+ user_op:{name:"User Op",t:"enum",o:["Idle","Save","Load","Del"],v:0},
+ input_mode:{name:"Input",t:"enum",o:["Ster","Mono"],v:0},
+ input_gain:{name:"In Gain",t:"x",v:1,min:0,max:2},
+ bypass:{name:"Bypass",t:"enum",o:["Off","On"],v:0},
+ bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
+};
+const PAGES={
+ root:{title:"Effect",knobs:["effect","variation","activity","repeats","shape","mix","space","filter"]},
+ tone:{title:"Tone",knobs:["filter_res","effect_vol","grain_env"]},
+ time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
+ spacefx:{title:"Space FX",knobs:["reverb_mode","mod_depth","mod_rate"]},
+ perform:{title:"Perform",knobs:["reverse","hold","hold_style"]},
+ looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed"]},
+ looper2:{title:"Looper 2",knobs:["loop_fademode","loop_order","loop_only","loop_burst"]},
+ user:{title:"User",knobs:["user_slot","user_op"]},
+ config:{title:"Config",knobs:["input_mode","input_gain","bypass","bypass_style"]},
+};
+let curPage="root";
+
+/* ---------- shared reactive store ---------- */
+const subs=new Set();
+function notify(key){subs.forEach(fn=>fn(key));}
+function clamp(x,a,b){return x<a?a:(x>b?b:x);}
+function setVal(key,val,fromRemote){const p=P[key];if(!p)return;p.v=val;
+ if(!fromRemote)pushToDevice(key);
+ if(key==="preset"&&!fromRemote)applyPreset(p.v);
+ if(key==="user_op"&&!fromRemote&&p.v>0)doUserOp(p.v);
+ notify(key);}
+function bump(key,dir){const p=P[key];
+ if(p.t==="pct")setVal(key,clamp(p.v+dir*0.04,0,1));
+ else if(p.t==="bpm")setVal(key,clamp(p.v+dir*4,p.min,p.max));
+ else if(p.t==="x")setVal(key,clamp(p.v+dir*((p.max-p.min)/40),p.min,p.max));
+ else if(p.t==="int")setVal(key,clamp(p.v+dir,p.min,p.max));
+ else if(p.t==="var")setVal(key,(p.v+(dir>0?1:3))%4);
+ else setVal(key,(p.v+(dir>0?1:p.o.length-1))%p.o.length);}
+function fmt(key){const p=P[key];
+ if(p.t==="pct")return Math.round(p.v*100)+"%";
+ if(p.t==="bpm")return Math.round(p.v)+" BPM";
+ if(p.t==="x")return p.v.toFixed(2)+"x";
+ if(p.t==="int")return String(p.v);
+ if(p.t==="var")return EFFECTS[P.effect.v].vl[p.v];
+ return p.o[p.v];}
+function frac(key){const p=P[key];
+ if(p.t==="pct")return p.v;
+ if(p.t==="bpm"||p.t==="x"||p.t==="int")return (p.v-p.min)/(p.max-p.min);
+ if(p.t==="var")return p.v/3;
+ return p.o.length>1?p.v/(p.o.length-1):0;}
+function applyPreset(i){const s=PRESETS[i].s;for(const k in s){if(P[k]){P[k].v=s[k];pushToDevice(k);}}notify("*");}
+
+/* =====================================================================
+   LIVE BRIDGE — schwung-manager /ws/remote-ui (or embedded schwungRemote)
+   ===================================================================== */
+const Bridge={mode:"demo",ws:null,slot:null,comp:null,applying:false,host:null};
+function setStatus(mode,text){const d=document.getElementById("dot"),t=document.getElementById("statusText");
+ d.className="dot "+(mode==="live"?"live":mode==="err"?"err":"demo");t.textContent=text;Bridge.mode=mode;}
+/* serialize a param for set_param (device accepts option strings + numbers) */
+function serialize(key){const p=P[key];
+ if(p.t==="pct"||p.t==="bpm"||p.t==="x")return String(p.v);
+ if(p.t==="int")return String(p.v);
+ if(p.t==="var")return EFFECTS[P.effect.v].vl[p.v];
+ return p.o[p.v];}
+/* parse an incoming device value (may be index or string) into our store */
+function ingest(key,raw){const p=P[key];if(p===undefined)return;
+ if(p.t==="pct"){const f=parseFloat(raw);if(!isNaN(f))p.v=clamp(f,0,1);}
+ else if(p.t==="bpm"||p.t==="x"){const f=parseFloat(raw);if(!isNaN(f))p.v=clamp(f,p.min,p.max);}
+ else if(p.t==="int"){const n=parseInt(raw);if(!isNaN(n))p.v=clamp(n,p.min,p.max);}
+ else if(p.t==="var"){const n=parseInt(raw);if(!isNaN(n)&&String(n)===String(raw).trim())p.v=clamp(n,0,3);
+   else{const idx=EFFECTS[P.effect.v].vl.indexOf(raw);if(idx>=0)p.v=idx;}}
+ else{ // enum: numeric index or option string
+   const n=parseInt(raw);
+   if(!isNaN(n)&&String(n)===String(raw).trim()&&n<p.o.length)p.v=n;
+   else{const idx=p.o.indexOf(raw);if(idx>=0)p.v=idx;}}
+}
+function pushToDevice(key){
+ if(Bridge.mode!=="live"||Bridge.applying||Bridge.slot===null)return;
+ const msg={type:"set_param",slot:Bridge.slot,key:Bridge.comp+":"+key,value:serialize(key)};
+ try{Bridge.ws.send(JSON.stringify(msg));}catch(e){}
+}
+function defaultHost(){
+ if(location.host&&location.protocol.startsWith("http"))return location.host;
+ return "move.local:7700";
+}
+function connectLive(host){
+ if(location.protocol==="https:"){setStatus("demo","demo · open from your Move (http) for live control");return;}
+ host=host||defaultHost();Bridge.host=host;
+ try{if(Bridge.ws)Bridge.ws.close();}catch(e){}
+ setStatus("demo","connecting to "+host+"…");
+ let ws;try{ws=new WebSocket("ws://"+host+"/ws/remote-ui");}catch(e){setStatus("err","cannot connect");return;}
+ Bridge.ws=ws;let found=false;
+ ws.onopen=()=>{for(let s=0;s<8;s++)ws.send(JSON.stringify({type:"subscribe",slot:s}));
+   setTimeout(()=>{if(!found)setStatus("demo","connected · load War Bells in a slot, then Connect");},2500);};
+ ws.onerror=()=>setStatus("err","connection failed · "+host);
+ ws.onclose=()=>{if(Bridge.mode==="live")setStatus("err","disconnected");};
+ ws.onmessage=(e)=>{let m;try{m=JSON.parse(e.data);}catch(_){return;}
+   if(m.type==="slot_info"){
+     for(const c of["fx1","fx2"]){if(m[c]==="war_bells"&&!found){found=true;Bridge.slot=m.slot;Bridge.comp=c;
+       setStatus("live","live · slot "+m.slot+" "+c.toUpperCase());}}
+   }else if(m.type==="param_update"&&found&&m.slot===Bridge.slot){
+     Bridge.applying=true;
+     for(const fk in m.params){const i=fk.indexOf(":");const comp=fk.slice(0,i),key=fk.slice(i+1);
+       if(comp===Bridge.comp)ingest(key,m.params[fk]);}
+     Bridge.applying=false;notify("*");
+   }
+ };
+}
+/* embedded (synth iframe) path — present for future FX support */
+function tryEmbedded(){
+ if(window.parent===window)return false;
+ window.addEventListener("message",(e)=>{const d=e.data;if(!d||!d.type)return;
+   if(d.type==="paramUpdate"&&d.params){Bridge.applying=true;
+     for(const fk in d.params){const i=fk.indexOf(":");const key=i>=0?fk.slice(i+1):fk;ingest(key,d.params[fk]);}
+     Bridge.applying=false;notify("*");}});
+ Bridge.mode="embedded";Bridge.comp="synth";Bridge.slot=0;
+ window.parent.postMessage({type:"subscribe"},"*");
+ // override push for postMessage
+ window.__wbEmbedded=true;setStatus("live","live · embedded");return true;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const effSel=document.getElementById("effSel"),varSel=document.getElementById("varSel");
+EFFECTS.forEach((e,i)=>{const o=document.createElement("option");o.value=i;o.textContent=e.cat+" · "+e.n;effSel.appendChild(o);});
+effSel.onchange=()=>setVal("effect",+effSel.value);
+varSel.onchange=()=>setVal("variation",+varSel.value);
+function renderPickers(){
+ effSel.value=P.effect.v;
+ varSel.innerHTML="";EFFECTS[P.effect.v].vl.forEach((l,i)=>{const o=document.createElement("option");o.value=i;
+   o.textContent=l;varSel.appendChild(o);});varSel.value=P.variation.v;
+ const e=EFFECTS[P.effect.v];document.getElementById("catChip").textContent=e.cat;
+ document.getElementById("nowLine").textContent=`${e.cat} · ${e.n} · ${e.vl[P.variation.v]} — ${e.v[P.variation.v]}`;
+}
+const tabsEl=document.getElementById("tabs");
+Object.entries(PAGES).forEach(([id,pg])=>{const b=document.createElement("button");b.textContent=pg.title;
+ b.onclick=()=>{curPage=id;renderTabs();renderKnobs();};b.dataset.id=id;tabsEl.appendChild(b);});
+function renderTabs(){[...tabsEl.children].forEach(b=>b.classList.toggle("on",b.dataset.id===curPage));}
+const knobRow=document.getElementById("knobRow");
+function renderKnobs(){const pg=PAGES[curPage];knobRow.innerHTML="";
+ for(let i=0;i<8;i++){const key=pg.knobs[i];const w=document.createElement("div");w.className="knob";
+   const d=document.createElement("div");d.className="dial"+(key?"":" empty");
+   const ind=document.createElement("div");ind.className="ind";d.appendChild(ind);
+   const lab=document.createElement("div");lab.className="lab";const val=document.createElement("div");val.className="val";
+   if(key){ind.style.transform=`translateX(-50%) rotate(${-140+frac(key)*280}deg)`;
+     lab.textContent=P[key].name;val.textContent=fmt(key);attachDial(d,key);}
+   else{ind.style.opacity=0;}
+   w.append(d,lab,val);knobRow.appendChild(w);}
+}
+function attachDial(el,key){let last=0,active=false,acc=0;
+ const s=e=>{active=true;last=(e.touches?e.touches[0].clientY:e.clientY);acc=0;e.preventDefault();};
+ const m=e=>{if(!active)return;const y=(e.touches?e.touches[0].clientY:e.clientY);acc+=last-y;last=y;
+   while(Math.abs(acc)>=12){bump(key,acc>0?1:-1);acc+=acc>0?-12:12;}};
+ const u=()=>active=false;
+ el.addEventListener("mousedown",s);el.addEventListener("touchstart",s,{passive:false});
+ window.addEventListener("mousemove",m);window.addEventListener("touchmove",m,{passive:false});
+ window.addEventListener("mouseup",u);window.addEventListener("touchend",u);
+ el.addEventListener("wheel",e=>{e.preventDefault();bump(key,e.deltaY<0?1:-1);},{passive:false});
+}
+/* preset chips */
+const pc=document.getElementById("presetChips");
+PRESETS.forEach((p,i)=>{const b=document.createElement("span");b.className="chip";b.textContent=p.n;
+ b.title=p.d;b.onclick=()=>{P.preset.v=i;applyPreset(i);};pc.appendChild(b);});
+/* effect cards + legend */
+const fxGrid=document.getElementById("fxGrid");
+EFFECTS.forEach((e,i)=>{const d=document.createElement("div");d.className="fx";
+ d.innerHTML=`<div class="nm"><span class="catdot" style="background:${CATS[e.cat].c}"></span>${e.n}</div>
+  <div class="mc">${e.cat} · Activity = ${e.act}</div>
+  <ol>${e.v.map((t,k)=>`<li><b>${e.vl[k]}</b> — ${t}</li>`).join("")}</ol>`;
+ d.onclick=()=>setVal("effect",i);fxGrid.appendChild(d);});
+const leg=document.getElementById("catLegend");
+Object.entries(CATS).forEach(([k,o])=>{const s=document.createElement("div");s.className="panel";
+ s.style.padding="10px";s.innerHTML=`<span class="catdot" style="background:${o.c}"></span><b>${k}</b>
+  <div class="muted">${o.d}</div>`;leg.appendChild(s);});
+/* reverb + preset doc grids */
+const revGrid=document.getElementById("revGrid");
+REVERBS.forEach(([n,d],i)=>{const el=document.createElement("div");el.className="fx";
+ el.innerHTML=`<div class="nm">${n}</div><div class="mc">${d}</div>`;
+ el.onclick=()=>{setVal("reverb_mode",i);setVal("space",Math.max(P.space.v,.4));};revGrid.appendChild(el);});
+const pg2=document.getElementById("presetGrid");
+PRESETS.forEach((p,i)=>{const el=document.createElement("div");el.className="fx";
+ el.innerHTML=`<div class="nm">${p.n}</div><div class="mc">${p.d}</div>`;
+ el.onclick=()=>{P.preset.v=i;applyPreset(i);};pg2.appendChild(el);});
+
+/* ---------- inline doc controls ---------- */
+function hydrateInline(){
+ document.querySelectorAll(".ictl[data-k]").forEach(el=>{
+   const key=el.dataset.k,p=P[key];if(!p)return;el.innerHTML="";
+   const lab=document.createElement("label");lab.textContent=p.name;el.appendChild(lab);
+   if(p.t==="pct"||p.t==="bpm"||p.t==="x"||p.t==="int"){
+     const r=document.createElement("input");r.type="range";
+     const min=p.min??0,max=(p.t==="pct"?1:p.max),step=(p.t==="pct"?0.02:p.t==="int"?1:p.t==="x"?0.05:1);
+     r.min=min;r.max=max;r.step=step;r.value=p.v;
+     r.oninput=()=>setVal(key,parseFloat(r.value));el.appendChild(r);
+   }else{
+     const sel=document.createElement("select");const opts=(p.t==="var")?EFFECTS[P.effect.v].vl:p.o;
+     opts.forEach((o,i)=>{const op=document.createElement("option");op.value=i;op.textContent=o;sel.appendChild(op);});
+     sel.value=p.v;sel.onchange=()=>setVal(key,+sel.value);el.appendChild(sel);
+   }
+   const iv=document.createElement("span");iv.className="iv";iv.textContent=fmt(key);el.appendChild(iv);
+   el._sync=()=>{const c=el.firstChild;const inp=el.querySelector("input,select");
+     if(inp){if(inp.tagName==="SELECT"&&key==="variation"){ // var options depend on effect
+        if(inp.options.length!==EFFECTS[P.effect.v].vl.length){inp.innerHTML="";
+          EFFECTS[P.effect.v].vl.forEach((o,i)=>{const op=document.createElement("option");op.value=i;op.textContent=o;inp.appendChild(op);});}
+       }
+       inp.value=p.v;}
+     iv.textContent=fmt(key);};
+ });
+}
+function syncInline(){document.querySelectorAll(".ictl[data-k]").forEach(el=>{if(el._sync)el._sync();});}
+
+/* ---------- harmonics + grain visualiser ---------- */
+(function(){
+ const c=document.getElementById("harm"),g=c.getContext("2d");let grains=[],t=0;
+ function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+ function envShape(x,mode){ // 0 soft 1 pluck 2 swell 3 gate
+   if(mode===1)return 1-x;if(mode===2)return x;if(mode===3)return (x<.06||x>.94)?0:1;
+   return .5-.5*Math.cos(2*Math.PI*x);}
+ function draw(){
+   t++;const W=c.width,H=c.height;
+   g.fillStyle=getComputedStyle(c).backgroundColor;g.globalAlpha=1;g.fillRect(0,0,W,H);
+   const hue=CATS[EFFECTS[P.effect.v].cat].h;
+   const act=P.activity.v,shp=P.shape.v,mix=P.mix.v,space=P.space.v,env=P.grain_env.v;
+   const md=P.mod_depth.v,mr=P.mod_rate.v;
+   const N=6+Math.round(act*18); // harmonic count grows with Activity
+   const base=H*0.9, x0=18, x1=W-18;
+   // glow floor
+   const grd=g.createLinearGradient(0,0,0,H);
+   grd.addColorStop(0,`hsla(${hue},80%,60%,${0.05+space*0.12})`);grd.addColorStop(1,"transparent");
+   g.fillStyle=grd;g.fillRect(0,0,W,H);
+   for(let i=1;i<=N;i++){
+     const f=i/N;const x=x0+(x1-x0)*f;
+     // harmonic amplitude: 1/n falloff, brightened by Shape, wobbled by mod
+     let amp=(1/Math.pow(i,0.6-shp*0.35));
+     amp*=0.35+mix*0.75;
+     const wob=1+md*0.25*Math.sin(t*0.05*(1+mr*3)+i);
+     amp*=wob;
+     const h=clamp(amp,0,1.6)*base*0.62;
+     const segs=10;
+     for(let s=0;s<segs;s++){const yy=base-(h*s/segs);const ev=envShape(s/segs,env);
+       g.fillStyle=`hsla(${hue+i*2},85%,${55+s*2}%,${(0.12+ev*0.6)*(0.4+mix*0.6)})`;
+       g.fillRect(x-3,yy-(h/segs),6,Math.max(1,h/segs-1));}
+     g.fillStyle=`hsla(${hue+i*2},90%,68%,${0.5+mix*0.4})`;g.beginPath();g.arc(x,base-h,2.2+shp*2.5,0,7);g.fill();
+   }
+   // grain cloud
+   if(t%2===0){const n=Math.round(act*3);for(let i=0;i<n&&grains.length<200;i++)
+     grains.push({x:x0+Math.random()*(x1-x0),y:base*0.5+(Math.random()-.5)*base*0.7,
+       r:1.5+shp*7*Math.random(),life:0,max:18+shp*55,vx:(Math.random()-.5)*0.5});}
+   for(let i=grains.length-1;i>=0;i--){const p=grains[i];p.life++;p.x+=p.vx;
+     const a=envShape(p.life/p.max,env);if(p.life>=p.max){grains.splice(i,1);continue;}
+     g.beginPath();g.fillStyle=`hsla(${hue},80%,65%,${a*0.5})`;g.arc(p.x,p.y,p.r,0,7);g.fill();}
+   requestAnimationFrame(draw);
+ }
+ draw();
+})();
+
+/* ---------- dedicated grain-cloud visualiser (kept from the manual) ---------- */
+(function(){
+ const c=document.getElementById("grains");if(!c)return;const g=c.getContext("2d");
+ let W=c.width,H=c.height,grains=[],t=0;
+ function hue(){return CATS[EFFECTS[P.effect.v].cat].h;}
+ function spawn(){const density=P.activity.v,size=0.3+P.shape.v*0.7,n=Math.round(density*4);
+   for(let i=0;i<n;i++)if(grains.length<260)
+     grains.push({x:Math.random()*W,y:H/2+(Math.random()-.5)*H*0.7*(0.4+density),
+       r:2+size*10*Math.random(),life:0,max:20+size*60,vx:(Math.random()-.5)*0.6,hue:hue()});}
+ function loop(){t++;if(t%2===0)spawn();
+   g.fillStyle="rgba(10,12,18,0.28)";g.fillRect(0,0,W,H);
+   for(let i=grains.length-1;i>=0;i--){const p=grains[i];p.life++;p.x+=p.vx;
+     const a=Math.sin(Math.PI*p.life/p.max);if(p.life>=p.max){grains.splice(i,1);continue;}
+     g.beginPath();g.fillStyle=`hsla(${p.hue},78%,63%,${a*0.8})`;g.arc(p.x,p.y,p.r,0,7);g.fill();}
+   requestAnimationFrame(loop);}
+ loop();
+})();
+
+/* ---------- global re-render on store change ---------- */
+subs.add(()=>{renderPickers();renderKnobs();syncInline();});
+function renderAll(){renderPickers();renderTabs();renderKnobs();hydrateInline();}
+
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById("themeBtn");
+function applyTheme(){const m=localStorage.getItem("wb_theme")||"auto";
+ const root=document.documentElement;if(m==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",m);
+ themeBtn.textContent=m==="auto"?"◐":m==="light"?"☀":"☾";themeBtn.title="theme: "+m;}
+themeBtn.onclick=()=>{const cur=localStorage.getItem("wb_theme")||"auto";
+ const next={auto:"light",light:"dark",dark:"auto"}[cur];localStorage.setItem("wb_theme",next);applyTheme();};
+applyTheme();
+
+/* ---------- nav toggle ---------- */
+document.getElementById("navBtn").onclick=()=>document.getElementById("tocbar").classList.toggle("open");
+document.querySelectorAll("#tocbar a").forEach(a=>a.onclick=()=>document.getElementById("tocbar").classList.remove("open"));
+
+/* ---------- user-slot demo (browser localStorage when not live) ---------- */
+function doUserOp(op){const slot=P.user_slot.v,k="wb_demo_slot_"+slot;
+ if(Bridge.mode==="live"){P.user_op.v=0;return;} // device handles it
+ try{if(op===1){const s={};Object.keys(P).forEach(x=>{if(x!=="user_op")s[x]=P[x].v;});localStorage.setItem(k,JSON.stringify(s));}
+   else if(op===2){const r=localStorage.getItem(k);if(r){const s=JSON.parse(r);Object.keys(s).forEach(x=>{if(P[x])P[x].v=s[x];});}}
+   else if(op===3)localStorage.removeItem(k);}catch(e){}
+ P.user_op.v=0;notify("*");}
+
+/* ---------- connect controls ---------- */
+const hostInput=document.getElementById("hostInput");hostInput.value=defaultHost();
+document.getElementById("connectBtn").onclick=()=>connectLive(hostInput.value.trim());
+
+/* ---------- boot ---------- */
+renderAll();
+if(!tryEmbedded()){
+ if(location.protocol==="https:")setStatus("demo","demo mode · open from your Move for live control");
+ else connectLive(defaultHost());
+}
+</script>
+</body>
+</html>
