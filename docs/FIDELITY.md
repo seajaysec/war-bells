@@ -7,11 +7,11 @@ Legend: **✅ implemented** · **≈ modeled** (faithful in behavior; exact anal
 device) · **N/A** (not meaningful on the Move surface).
 
 ## Param surface
-39 editable params, all served from the DSP (`get_param("chain_params")` + a duplicate-free
+50 editable params, all served from the DSP (`get_param("chain_params")` + a duplicate-free
 `get_param("ui_hierarchy")`) — `module.json` is a minimal manifest. Function-first, glanceable
 names. Pages: **Root** (Preset · Effect · Variation · Activity · Repeats · Shape · Mix · Space ·
-Filter) · **Tone** · **Time** · **Space FX** · **Perform** · **Looper** · **Looper 2** ·
-**User Slots** · **Config**.
+Filter) · **Tone** · **Time** · **Space FX** · **Motion** · **Generate** · **Perform** ·
+**Looper** · **Looper 2** · **User Slots** · **Config**.
 
 ## Controls
 | Feature | Status | Notes |
@@ -65,6 +65,16 @@ Filter) · **Tone** · **Time** · **Space FX** · **Perform** · **Looper** · 
 | Full CC map | ✅ | `war_bells.c` `midi_cc()` |
 | Program Change (effect/variation) | ✅ | effect = PC ÷ 4, variation = PC mod 4 |
 | Clock sync | ✅ | host `get_bpm` / `get_clock_status` (Clock = Sync) |
+
+## Movement & generative
+| Feature | Status | Notes |
+|---|---|---|
+| Shimmer reverb (Oct± / 5th) | ✅ | reverb tail fed back through `pitchshift.h` (`war_bells.c`) |
+| Stereo width | ✅ | exposes `reverb.width` (`wb_apply_space`) |
+| Scale-locked pitch | ✅ | grain rate snapped to a scale (`wb_scale_snap` in `util.h`, applied in `grain.h`) |
+| Motion mod-LFO | ✅ | one tempo-synced LFO → Activity/Filter/Space/Mix/Mod, per-block overlay (`war_bells.c`) |
+| Evolve / Dice | ✅ | clocked bounded re-roll (`wb_evolve_roll` in `effects.c`); Dice = one-shot |
+| Duck (input sidechain) | ✅ | wet level follows the inverse of the input envelope (`transient.h`) |
 
 ## Web UI
 | Custom browser controller + manual | ✅ | `web_ui.html` — live over the Schwung Manager WebSocket when served from the device; interactive demo on GitHub Pages |

@@ -184,7 +184,7 @@
     <div class="tocbar" id="tocbar">
       <a href="#idea">Idea</a><a href="#effects">Effects</a><a href="#macros">Macros</a>
       <a href="#grain">Grain env</a><a href="#time">Time</a><a href="#space">Space</a>
-      <a href="#presets">Presets</a><a href="#perform">Perform</a><a href="#looper">Looper</a>
+      <a href="#presets">Presets</a><a href="#alive">Alive</a><a href="#perform">Perform</a><a href="#looper">Looper</a>
       <a href="#user">User slots</a><a href="#midi">MIDI</a><a href="#web">Web control</a>
     </div>
   </div>
@@ -275,8 +275,29 @@
   <div class="grid g4" id="presetGrid"></div>
 </section>
 
+<section id="alive">
+  <h2><span class="num">08</span>Make it alive: motion, pitch &amp; generate</h2>
+  <p class="lead">Four ways to take the same sound somewhere distinct — musical, moving, and
+  self-evolving — without leaving the palette.</p>
+  <div class="grid g2">
+    <div class="panel"><h3>Shimmer</h3><p>Feeds the reverb tail through a pitch-shifter for rising
+      octave/fifth shimmer (Space FX page). <span class="ictl" data-k="shimmer"></span>
+      <span class="ictl" data-k="width"></span></p></div>
+    <div class="panel"><h3>Scale-lock</h3><p>Snaps pitched grains/glides to a scale so everything
+      stays in key (Tone page). <span class="ictl" data-k="pitch_scale"></span></p></div>
+    <div class="panel"><h3>Motion</h3><p>A tempo-synced LFO that modulates a chosen macro — built-in
+      movement. <span class="ictl" data-k="mot_target"></span> <span class="ictl" data-k="mot_rate"></span>
+      <span class="ictl" data-k="mot_depth"></span> <span class="ictl" data-k="mot_shape"></span></p></div>
+    <div class="panel"><h3>Evolve &amp; Dice</h3><p>Clocked, bounded re-rolling for textures that drift
+      and never repeat; Dice re-rolls now. <span class="ictl" data-k="evolve"></span>
+      <span class="ictl" data-k="evo_range"></span> <span class="ictl" data-k="dice"></span></p></div>
+    <div class="panel"><h3>Duck</h3><p>Sidechains the wet to your input so the effect blooms in the
+      gaps (Perform page). <span class="ictl" data-k="duck"></span></p></div>
+  </div>
+</section>
+
 <section id="perform">
-  <h2><span class="num">08</span>Perform</h2>
+  <h2><span class="num">09</span>Perform</h2>
   <div class="grid g3">
     <div class="panel"><h3>Reverse</h3><p>Backwards grain/loop playback.</p><span class="ictl" data-k="reverse"></span></div>
     <div class="panel"><h3>Hold</h3><p>Freezes the last moment into an endless bed.</p><span class="ictl" data-k="hold"></span></div>
@@ -285,7 +306,7 @@
 </section>
 
 <section id="looper">
-  <h2><span class="num">09</span>The 60-second looper</h2>
+  <h2><span class="num">10</span>The 60-second looper</h2>
   <p class="lead">Record, overdub, reverse, re-speed, save. Transport:
    <span class="ictl" data-k="transport"></span></p>
   <div class="grid g3">
@@ -299,7 +320,7 @@
 </section>
 
 <section id="user">
-  <h2><span class="num">10</span>User preset slots</h2>
+  <h2><span class="num">11</span>User preset slots</h2>
   <p class="lead">Save your own sounds — params <i>and</i> the recorded loop — to 16 on-device slots.
    Pick <span class="ictl" data-k="user_slot"></span> then <span class="ictl" data-k="user_op"></span>.</p>
   <div class="grid g3">
@@ -310,7 +331,7 @@
 </section>
 
 <section id="midi">
-  <h2><span class="num">11</span>Config &amp; MIDI</h2>
+  <h2><span class="num">12</span>Config &amp; MIDI</h2>
   <div class="grid g3">
     <div class="panel"><h3>Input</h3><span class="ictl" data-k="input_mode"></span>
       <span class="ictl" data-k="input_gain"></span></div>
@@ -332,7 +353,7 @@
 </section>
 
 <section id="web">
-  <h2><span class="num">12</span>Web control</h2>
+  <h2><span class="num">13</span>Web control</h2>
   <p class="lead">This page is dual-purpose. Served from GitHub Pages it's an interactive demo + manual.
   Opened <b>from your Move</b> it becomes a live controller of the real plugin.</p>
   <div class="panel">
@@ -432,13 +453,26 @@ const P={
  input_gain:{name:"In Gain",t:"x",v:1,min:0,max:2},
  bypass:{name:"Bypass",t:"enum",o:["Off","On"],v:0},
  bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
+ shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
+ width:{name:"Width",t:"pct",v:1},
+ pitch_scale:{name:"Scale",t:"enum",o:["Off","Maj","Min","Pent","Oct","5th"],v:0},
+ duck:{name:"Duck",t:"pct",v:0},
+ mot_target:{name:"Mod Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod"],v:0},
+ mot_rate:{name:"Mot Rate",t:"enum",o:["8bar","4bar","2bar","1bar","1/2","1/4","1/8"],v:3},
+ mot_depth:{name:"Mot Dep",t:"pct",v:.4},
+ mot_shape:{name:"Wave",t:"enum",o:["Sine","Tri","Ramp","Rand"],v:0},
+ evolve:{name:"Evolve",t:"pct",v:0},
+ evo_range:{name:"Range",t:"enum",o:["Soft","Mid","Wild"],v:1},
+ dice:{name:"Dice",t:"enum",o:["-","Roll"],v:0},
 };
 const PAGES={
  root:{title:"Effect",knobs:["effect","variation","activity","repeats","shape","mix","space","filter"]},
- tone:{title:"Tone",knobs:["filter_res","effect_vol","grain_env"]},
+ tone:{title:"Tone",knobs:["filter_res","effect_vol","grain_env","pitch_scale"]},
  time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
- spacefx:{title:"Space FX",knobs:["reverb_mode","mod_depth","mod_rate"]},
- perform:{title:"Perform",knobs:["reverse","hold","hold_style"]},
+ spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","mod_depth","mod_rate"]},
+ motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},
+ generate:{title:"Generate",knobs:["evolve","evo_range","dice"]},
+ perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
  looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed"]},
  looper2:{title:"Looper 2",knobs:["loop_fademode","loop_order","loop_only","loop_burst"]},
  user:{title:"User",knobs:["user_slot","user_op"]},
@@ -454,6 +488,7 @@ function setVal(key,val,fromRemote){const p=P[key];if(!p)return;p.v=val;
  if(!fromRemote)pushToDevice(key);
  if(key==="preset"&&!fromRemote)applyPreset(p.v);
  if(key==="user_op"&&!fromRemote&&p.v>0)doUserOp(p.v);
+ if(key==="dice"&&!fromRemote&&p.v===1){ if(Bridge.mode!=="live")P.variation.v=Math.floor(Math.random()*4); p.v=0; }
  notify(key);}
 function bump(key,dir){const p=P[key];
  if(p.t==="pct")setVal(key,clamp(p.v+dir*0.04,0,1));

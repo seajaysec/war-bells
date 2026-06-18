@@ -46,16 +46,34 @@
     {
       "title": "Pages",
       "lines": [
-        "Tone: cutoff reso",
-        " fx-vol",
+        "Tone: reso fx-vol",
+        " grain-env scale",
         "Time: tempo subdiv",
         "Space FX: reverb",
-        " mod depth/rate",
+        " shimmer width mod",
+        "Motion: LFO -> macro",
+        "Generate: evolve",
+        " range dice",
         "Perform: reverse",
-        " hold",
+        " hold duck",
         "Looper / Looper 2",
         "User Slots: save",
         "Config: in, bypass"
+      ]
+    },
+    {
+      "title": "Alive",
+      "lines": [
+        "Shimmer: pitched",
+        " reverb tail.",
+        "Scale: keep grains",
+        " in key.",
+        "Motion: tempo LFO",
+        " on any macro.",
+        "Evolve: textures",
+        " drift; Dice = now.",
+        "Duck: blooms in",
+        " the gaps."
       ]
     },
     {

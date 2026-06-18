@@ -35,6 +35,7 @@ typedef struct {
     float cutoff, rq, crush;
     int   fmode;
     int   envmode;       /* grain amplitude env: 0 Soft(Hann) 1 Pluck(down) 2 Swell(up) 3 Gate */
+    int   scale;         /* 0 off, else snap playback rate to a musical scale (wb_scale_snap) */
     /* glide */
     int   glide, bidir;
     float glo, ghi, gfreq;
@@ -53,23 +54,31 @@ static inline void wb_voice_init(wb_voice_t *v, uint32_t seed) {
     v->rate = 1.0f; v->size = 0.14f; v->density = 12.0f;
     v->scatter = 0.1f; v->spread = 0.2f; v->gain = 0.0f;
     v->cutoff = 16000.0f; v->rq = 0.4f; v->crush = 24.0f;
-    v->fmode = WB_F_NONE; v->envmode = 0; v->glide = 0; v->bidir = 0;
+    v->fmode = WB_F_NONE; v->envmode = 0; v->scale = 0; v->glide = 0; v->bidir = 0;
     v->glo = 1.0f; v->ghi = 1.0f; v->gfreq = 0.3f;
     v->gain_cur = 0.0f; v->rate_cur = 1.0f;
     v->rng = seed ? seed : 0x1234567u;
     wb_svf_reset(&v->filt);
 }
 
-/* effective playback rate this sample (triangle glide if enabled) */
+/* effective playback rate this sample (triangle glide if enabled, scale-snapped if set) */
 static inline float wb_voice_eff_rate(wb_voice_t *v) {
-    if (!v->glide) return v->rate;
-    /* triangle 0..1..0 */
-    double p = v->glide_ph + (v->bidir ? 0.5 : 0.0);
-    if (p >= 1.0) p -= 1.0;
-    float tri = (p < 0.5) ? (float)(p * 2.0) : (float)(2.0 - p * 2.0);
-    v->glide_ph += (double)(v->gfreq / WB_SR);
-    if (v->glide_ph >= 1.0) v->glide_ph -= 1.0;
-    return wb_lerpf(v->glo, v->ghi, tri);
+    float r;
+    if (!v->glide) r = v->rate;
+    else {
+        /* triangle 0..1..0 */
+        double p = v->glide_ph + (v->bidir ? 0.5 : 0.0);
+        if (p >= 1.0) p -= 1.0;
+        float tri = (p < 0.5) ? (float)(p * 2.0) : (float)(2.0 - p * 2.0);
+        v->glide_ph += (double)(v->gfreq / WB_SR);
+        if (v->glide_ph >= 1.0) v->glide_ph -= 1.0;
+        r = wb_lerpf(v->glo, v->ghi, tri);
+    }
+    if (v->scale) {                              /* quantize |rate| to the scale, keep sign */
+        float s = (r < 0.0f) ? -1.0f : 1.0f;
+        r = s * wb_scale_snap(r < 0.0f ? -r : r, v->scale);
+    }
+    return r;
 }
 
 static inline void wb_voice_spawn(wb_voice_t *v, const wb_ring_t *rb, float eff_rate) {

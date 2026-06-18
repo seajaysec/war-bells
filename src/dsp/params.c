@@ -20,10 +20,17 @@ static const char *EFFECT_OPTS[WB_NEFFECTS] = {
     "Cloud","Drone","Chain","Taps","Warp"
 };
 static const char *REVERB_OPTS[4] = {"Room","Dark","Hall","Vast"};
+static const char *SHIMMER_OPTS[4] = {"Off","Oct+","Oct-","5th"};
 static const char *SUBDIV_OPTS[6] = {"1/4","1/2","1x","2x","4x","8x"};
 static const char *ONOFF[2]       = {"Off","On"};
 static const char *TEMPOSRC[3]    = {"Free","Sync","Man"};
 static const char *GRAINENV[4]    = {"Soft","Pluck","Swell","Gate"};
+static const char *PSCALE_OPTS[6] = {"Off","Maj","Min","Pent","Oct","5th"};
+static const char *MOT_TGT[6]     = {"Off","Act","Filt","Space","Mix","Mod"};
+static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/8"};
+static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
+static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
+static const char *DICE_OPTS[2]   = {"-","Roll"};
 static const char *PRESET_OPTS[8] = {"Init","Erase","Edit","Chor","Shimr","Birds","Glass","Pad"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
@@ -52,15 +59,26 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"filter\",\"name\":\"Filter\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"filter_res\",\"name\":\"Reso\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"grain_env\",\"name\":\"Grain Env\",\"type\":\"enum\",\"options\":[\"Soft\",\"Pluck\",\"Swell\",\"Gate\"]},"
+"{\"key\":\"pitch_scale\",\"name\":\"Scale\",\"type\":\"enum\",\"options\":[\"Off\",\"Maj\",\"Min\",\"Pent\",\"Oct\",\"5th\"]},"
 "{\"key\":\"reverse\",\"name\":\"Reverse\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"tempo_src\",\"name\":\"Clock\",\"type\":\"enum\",\"options\":[\"Free\",\"Sync\",\"Man\"]},"
 "{\"key\":\"subdiv\",\"name\":\"Subdiv\",\"type\":\"enum\",\"options\":[\"1/4\",\"1/2\",\"1x\",\"2x\",\"4x\",\"8x\"]},"
 "{\"key\":\"tempo\",\"name\":\"Tempo\",\"type\":\"int\",\"min\":20,\"max\":300,\"step\":1,\"unit\":\"BPM\"},"
 "{\"key\":\"reverb_mode\",\"name\":\"Reverb\",\"type\":\"enum\",\"options\":[\"Room\",\"Dark\",\"Hall\",\"Vast\"]},"
+"{\"key\":\"shimmer\",\"name\":\"Shimmer\",\"type\":\"enum\",\"options\":[\"Off\",\"Oct+\",\"Oct-\",\"5th\"]},"
+"{\"key\":\"width\",\"name\":\"Width\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_depth\",\"name\":\"Mod Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_rate\",\"name\":\"Mod Rate\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"mot_target\",\"name\":\"Mod Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Act\",\"Filt\",\"Space\",\"Mix\",\"Mod\"]},"
+"{\"key\":\"mot_rate\",\"name\":\"Mot Rate\",\"type\":\"enum\",\"options\":[\"8bar\",\"4bar\",\"2bar\",\"1bar\",\"1/2\",\"1/4\",\"1/8\"]},"
+"{\"key\":\"mot_depth\",\"name\":\"Mot Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"mot_shape\",\"name\":\"Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Tri\",\"Ramp\",\"Rand\"]},"
+"{\"key\":\"evolve\",\"name\":\"Evolve\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"evo_range\",\"name\":\"Range\",\"type\":\"enum\",\"options\":[\"Soft\",\"Mid\",\"Wild\"]},"
+"{\"key\":\"dice\",\"name\":\"Dice\",\"type\":\"enum\",\"options\":[\"-\",\"Roll\"]},"
 "{\"key\":\"hold\",\"name\":\"Hold\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"hold_style\",\"name\":\"Hold Md\",\"type\":\"enum\",\"options\":[\"Latch\",\"Gate\"]},"
+"{\"key\":\"duck\",\"name\":\"Duck\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"looper_on\",\"name\":\"Looper\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\",\"Undo\",\"Save\",\"Load\"]},"
 "{\"key\":\"loop_reverse\",\"name\":\"Lp Rev\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
@@ -92,19 +110,23 @@ static const char *UI_HIERARCHY_JSON =
    "{\"key\":\"shape\",\"name\":\"Shape\"},{\"key\":\"mix\",\"name\":\"Mix\"},"
    "{\"key\":\"space\",\"name\":\"Space\"},{\"key\":\"filter\",\"name\":\"Filter\"},"
    "{\"level\":\"tone\",\"name\":\"Tone\"},{\"level\":\"time\",\"name\":\"Time\"},"
-   "{\"level\":\"spacefx\",\"name\":\"Space FX\"},{\"level\":\"perform\",\"name\":\"Perform\"},"
+   "{\"level\":\"spacefx\",\"name\":\"Space FX\"},{\"level\":\"motion\",\"name\":\"Motion\"},{\"level\":\"generate\",\"name\":\"Generate\"},{\"level\":\"perform\",\"name\":\"Perform\"},"
    "{\"level\":\"looper\",\"name\":\"Looper\"},{\"level\":\"looper2\",\"name\":\"Looper 2\"},"
    "{\"level\":\"user\",\"name\":\"User Slots\"},{\"level\":\"config\",\"name\":\"Config\"}]},"
  "\"user\":{\"name\":\"User Slots\",\"knobs\":[\"user_slot\",\"user_op\"],"
    "\"params\":[{\"key\":\"user_slot\",\"name\":\"User Slot\"},{\"key\":\"user_op\",\"name\":\"User Op\"}]},"
- "\"tone\":{\"name\":\"Tone\",\"knobs\":[\"filter_res\",\"effect_vol\",\"grain_env\"],"
-   "\"params\":[{\"key\":\"filter_res\",\"name\":\"Reso\"},{\"key\":\"effect_vol\",\"name\":\"FX Vol\"},{\"key\":\"grain_env\",\"name\":\"Grain Env\"}]},"
+ "\"tone\":{\"name\":\"Tone\",\"knobs\":[\"filter_res\",\"effect_vol\",\"grain_env\",\"pitch_scale\"],"
+   "\"params\":[{\"key\":\"filter_res\",\"name\":\"Reso\"},{\"key\":\"effect_vol\",\"name\":\"FX Vol\"},{\"key\":\"grain_env\",\"name\":\"Grain Env\"},{\"key\":\"pitch_scale\",\"name\":\"Scale\"}]},"
  "\"time\":{\"name\":\"Time\",\"knobs\":[\"tempo_src\",\"subdiv\",\"tempo\"],"
    "\"params\":[{\"key\":\"tempo_src\",\"name\":\"Clock\"},{\"key\":\"subdiv\",\"name\":\"Subdiv\"},{\"key\":\"tempo\",\"name\":\"Tempo\"}]},"
- "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"mod_depth\",\"mod_rate\"],"
-   "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
- "\"perform\":{\"name\":\"Perform\",\"knobs\":[\"reverse\",\"hold\",\"hold_style\"],"
-   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Md\"}]},"
+ "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"shimmer\",\"width\",\"mod_depth\",\"mod_rate\"],"
+   "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"shimmer\",\"name\":\"Shimmer\"},{\"key\":\"width\",\"name\":\"Width\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
+ "\"motion\":{\"name\":\"Motion\",\"knobs\":[\"mot_target\",\"mot_rate\",\"mot_depth\",\"mot_shape\"],"
+   "\"params\":[{\"key\":\"mot_target\",\"name\":\"Mod Dest\"},{\"key\":\"mot_rate\",\"name\":\"Mot Rate\"},{\"key\":\"mot_depth\",\"name\":\"Mot Dep\"},{\"key\":\"mot_shape\",\"name\":\"Wave\"}]},"
+ "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"evo_range\",\"dice\"],"
+   "\"params\":[{\"key\":\"evolve\",\"name\":\"Evolve\"},{\"key\":\"evo_range\",\"name\":\"Range\"},{\"key\":\"dice\",\"name\":\"Dice\"}]},"
+ "\"perform\":{\"name\":\"Perform\",\"knobs\":[\"reverse\",\"hold\",\"hold_style\",\"duck\"],"
+   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Md\"},{\"key\":\"duck\",\"name\":\"Duck\"}]},"
  "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\"],"
    "\"params\":[{\"key\":\"looper_on\",\"name\":\"Looper\"},{\"key\":\"transport\",\"name\":\"Transport\"},"
    "{\"key\":\"loop_reverse\",\"name\":\"Lp Rev\"},{\"key\":\"loop_level\",\"name\":\"Lp Level\"},"
@@ -153,6 +175,10 @@ void wb_params_defaults(wb_t *w) {
     w->loop_order = 0; w->loop_quantize = 0; w->loop_only = 0; w->loop_burst = 0;
     w->loop_level = 0.9f; w->loop_fade = 0.1f; w->loop_speed = 1.0f; w->loop_fademode = 0;
     w->grain_env = 0; w->preset = 0; w->tempo_drift = 0.0f;
+    w->shimmer = 0; w->pitch_scale = 0;
+    w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
+    w->evolve = 0.0f; w->evo_range = 1;
+    w->duck = 0.0f; w->width = 1.0f;
     w->user_slot = 1;
     w->cur_tempo = 110.0f;
 }
@@ -319,6 +345,16 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"loop_level",&v)==0) w->loop_level=v;
         if (json_f(val,"loop_speed",&v)==0) w->loop_speed=v;
         if (json_f(val,"grain_env",&v)==0) w->grain_env=(int)v;
+        if (json_f(val,"shimmer",&v)==0) w->shimmer=(int)v;
+        if (json_f(val,"pitch_scale",&v)==0) w->pitch_scale=(int)v;
+        if (json_f(val,"mot_target",&v)==0) w->mot_target=(int)v;
+        if (json_f(val,"mot_rate",&v)==0) w->mot_rate=(int)v;
+        if (json_f(val,"mot_depth",&v)==0) w->mot_depth=v;
+        if (json_f(val,"mot_shape",&v)==0) w->mot_shape=(int)v;
+        if (json_f(val,"evolve",&v)==0) w->evolve=v;
+        if (json_f(val,"evo_range",&v)==0) w->evo_range=(int)v;
+        if (json_f(val,"duck",&v)==0) w->duck=v;
+        if (json_f(val,"width",&v)==0) w->width=v;
         if (json_f(val,"preset",&v)==0) w->preset=(int)v;
         if (json_f(val,"hold",&v)==0) w->hold=(int)v;
         if (json_f(val,"hold_style",&v)==0) w->hold_style=(int)v;
@@ -355,12 +391,23 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"filter")==0)   { w->filter = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
     else if (strcmp(key,"filter_res")==0){ w->filter_res = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
     else if (strcmp(key,"grain_env")==0){ w->grain_env = enum_parse(val,GRAINENV,4); w->params_dirty=1; }
+    else if (strcmp(key,"pitch_scale")==0){ w->pitch_scale = enum_parse(val,PSCALE_OPTS,6); w->params_dirty=1; }
     else if (strcmp(key,"mix")==0)      { w->mix = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"effect_vol")==0){ w->effect_vol = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"space")==0)    { w->space = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
     else if (strcmp(key,"reverb_mode")==0){ w->reverb_mode = enum_parse(val,REVERB_OPTS,4); wb_apply_space(w); }
+    else if (strcmp(key,"shimmer")==0)  { w->shimmer = enum_parse(val,SHIMMER_OPTS,4); }
+    else if (strcmp(key,"width")==0)    { w->width = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
+    else if (strcmp(key,"duck")==0)     { w->duck = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"mod_depth")==0){ w->mod_depth = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
     else if (strcmp(key,"mod_rate")==0) { w->mod_rate = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
+    else if (strcmp(key,"mot_target")==0){ w->mot_target = enum_parse(val,MOT_TGT,6); }
+    else if (strcmp(key,"mot_rate")==0) { w->mot_rate = enum_parse(val,MOT_RATE,7); }
+    else if (strcmp(key,"mot_depth")==0){ w->mot_depth = wb_clampf((float)atof(val),0,1); }
+    else if (strcmp(key,"mot_shape")==0){ w->mot_shape = enum_parse(val,MOT_SHAPE,4); }
+    else if (strcmp(key,"evolve")==0)   { w->evolve = wb_clampf((float)atof(val),0,1); }
+    else if (strcmp(key,"evo_range")==0){ w->evo_range = enum_parse(val,EVORANGE,3); }
+    else if (strcmp(key,"dice")==0)     { if (enum_parse(val,DICE_OPTS,2)==1) wb_evolve_roll(w,2); }
     else if (strcmp(key,"subdiv")==0)   { w->subdiv = enum_parse(val,SUBDIV_OPTS,6); w->params_dirty=1; }
     else if (strcmp(key,"tempo_src")==0){ w->tempo_src = enum_parse(val,TEMPOSRC,3); w->params_dirty=1; }
     else if (strcmp(key,"tempo")==0)    { w->tempo_manual = wb_clampf((float)atof(val),20,300); w->params_dirty=1; }
@@ -412,11 +459,22 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"effect_vol")==0)  return snprintf(buf,buf_len,"%.3f",w->effect_vol);
     if (strcmp(key,"space")==0)       return snprintf(buf,buf_len,"%.3f",w->space);
     if (strcmp(key,"reverb_mode")==0) return snprintf(buf,buf_len,"%s",REVERB_OPTS[w->reverb_mode]);
+    if (strcmp(key,"shimmer")==0)     return snprintf(buf,buf_len,"%s",SHIMMER_OPTS[w->shimmer]);
+    if (strcmp(key,"width")==0)       return snprintf(buf,buf_len,"%.3f",w->width);
+    if (strcmp(key,"duck")==0)        return snprintf(buf,buf_len,"%.3f",w->duck);
     if (strcmp(key,"mod_depth")==0)   return snprintf(buf,buf_len,"%.3f",w->mod_depth);
     if (strcmp(key,"mod_rate")==0)    return snprintf(buf,buf_len,"%.3f",w->mod_rate);
+    if (strcmp(key,"mot_target")==0)  return snprintf(buf,buf_len,"%s",MOT_TGT[w->mot_target]);
+    if (strcmp(key,"mot_rate")==0)    return snprintf(buf,buf_len,"%s",MOT_RATE[w->mot_rate]);
+    if (strcmp(key,"mot_depth")==0)   return snprintf(buf,buf_len,"%.3f",w->mot_depth);
+    if (strcmp(key,"mot_shape")==0)   return snprintf(buf,buf_len,"%s",MOT_SHAPE[w->mot_shape]);
+    if (strcmp(key,"evolve")==0)      return snprintf(buf,buf_len,"%.3f",w->evolve);
+    if (strcmp(key,"evo_range")==0)   return snprintf(buf,buf_len,"%s",EVORANGE[w->evo_range]);
+    if (strcmp(key,"dice")==0)        return snprintf(buf,buf_len,"-");  /* momentary */
     if (strcmp(key,"subdiv")==0)      return snprintf(buf,buf_len,"%s",SUBDIV_OPTS[w->subdiv]);
     if (strcmp(key,"preset")==0)      return snprintf(buf,buf_len,"%s",PRESET_OPTS[w->preset]);
     if (strcmp(key,"grain_env")==0)   return snprintf(buf,buf_len,"%s",GRAINENV[w->grain_env]);
+    if (strcmp(key,"pitch_scale")==0) return snprintf(buf,buf_len,"%s",PSCALE_OPTS[w->pitch_scale]);
     if (strcmp(key,"tempo_src")==0)   return snprintf(buf,buf_len,"%s",TEMPOSRC[w->tempo_src]);
     if (strcmp(key,"tempo")==0)       return snprintf(buf,buf_len,"%.0f",w->tempo_manual);
     if (strcmp(key,"hold")==0)        return snprintf(buf,buf_len,"%s",ONOFF[w->hold]);
@@ -449,13 +507,17 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"tempo_src\":%d,\"reverse\":%d,\"input_gain\":%.4f,\"loop_level\":%.4f,\"loop_speed\":%.4f,"
           "\"grain_env\":%d,\"preset\":%d,\"hold\":%d,\"hold_style\":%d,\"looper_on\":%d,"
           "\"loop_reverse\":%d,\"loop_fade\":%.4f,\"loop_fademode\":%d,\"loop_route\":%d,\"loop_order\":%d,"
-          "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d}",
+          "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
+          "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
+          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
           w->grain_env,w->preset,w->hold,w->hold_style,w->looper_on,
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
-          w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style);
+          w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
+          w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
+          w->evolve,w->evo_range,w->duck,w->width);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

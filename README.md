@@ -3,9 +3,10 @@
 **War Bells** is a granular-sampling / delay / looping multi-effect **module for the
 Ableton Move**, built on the open-source [Schwung](https://github.com/charlesvestal/schwung)
 framework. It is a hand-written C `audio_fx` plugin: eleven effects across four families,
-forty-four variations, four grain envelopes, a Hold sampler, a four-mode stereo reverb, a
-resonant low-pass filter, pitch modulation, a 60-second phrase looper, eight character
-presets, and a 16-slot user-preset bank that saves your sounds *and* their loops.
+forty-four variations, four grain envelopes, a Hold sampler, a four-mode stereo reverb with
+**shimmer**, a resonant low-pass filter, pitch modulation, **scale-locked pitch**, a tempo-synced
+**Motion** mod-LFO, a generative **Evolve/Dice** engine, input-ducking, a 60-second phrase looper,
+eight character presets, and a 16-slot user-preset bank that saves your sounds *and* their loops.
 
 🎛️ **[Interactive manual & live demo →](https://seajaysec.github.io/war-bells/)**
 
@@ -30,10 +31,12 @@ the **8 knobs** per page; metadata is served from the plugin (`chain_params` + `
 so every parameter is editable on the device.
 
 - **Root** — Preset · Effect · Variation · Activity · Repeats · Shape · Mix · Space · Filter
-- **Tone** — Resonance · FX Vol · **Grain Env** (Soft / Pluck / Swell / Gate)
+- **Tone** — Resonance · FX Vol · **Grain Env** (Soft / Pluck / Swell / Gate) · **Scale** (Off / Maj / Min / Pent / Oct / 5th)
 - **Time** — Clock (Free / Sync / Manual) · Subdivision · Tempo
-- **Space FX** — Reverb (Room / Dark / Hall / Vast) · Mod Depth · Mod Rate
-- **Perform** — Reverse · Hold · Hold Mode (Latch / Gate)
+- **Space FX** — Reverb (Room / Dark / Hall / Vast) · **Shimmer** (Oct± / 5th) · **Width** · Mod Depth · Mod Rate
+- **Motion** — Mod Dest (Act / Filt / Space / Mix / Mod) · Rate (8 bar…1/8) · Depth · Wave
+- **Generate** — **Evolve** · Range (Soft / Mid / Wild) · **Dice**
+- **Perform** — Reverse · Hold · Hold Mode (Latch / Gate) · **Duck**
 - **Looper** — on/off · Transport · Reverse · Level · Fade · Speed · Route · Quantize
 - **Looper 2** — Fade shape · Record order · Looper-Only · Burst
 - **User Slots** — User Slot (1–16) · User Op (Save / Load / Del)

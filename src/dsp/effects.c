@@ -96,6 +96,7 @@ void wb_apply_tone(wb_t *w) {
 void wb_apply_space(wb_t *w) {
     int m = w->reverb_mode; if (m < 0) m = 0; if (m > 3) m = 3;
     wb_reverb_set(&w->reverb, WB_REVERB_SIZE[m], WB_REVERB_DAMP[m]);
+    w->reverb.width = w->width;
     w->space_dtime = clampf(wb_loopsec(w), 0.05f, 1.0f);
     w->space_fb    = lerpf(0.15f, 0.6f, w->space);
 }
@@ -131,6 +132,7 @@ static void apply_grain(wb_t *w, const wb_var_t *v) {
             vc->crush   = crush_bits(v->crush);
             vc->fmode   = v->filt;
             vc->envmode = w->grain_env;
+            vc->scale   = w->pitch_scale;
             vc->cutoff  = lerpf(1500.0f, 16000.0f, w->shape);
             vc->rq      = 0.5f;
             vc->window  = window;
@@ -189,4 +191,18 @@ void wb_apply_all(wb_t *w) {
     wb_apply_effect(w);
     wb_apply_tone(w);
     wb_apply_space(w);
+}
+
+/* generative re-roll — reuses per-voice RNG (scatter/pan re-randomize) and, with more
+ * "range", re-rolls the variation and nudges activity/shape within bounds. Stays in the
+ * current effect/palette; Evolve fires this on a clock, Dice fires it once. */
+void wb_evolve_roll(wb_t *w, int range) {
+    for (int v = 0; v < WB_NV; v++)
+        w->voices[v].rng ^= (wb_rng_next(&w->evo_rng) | 1u);   /* fresh scatter/pan */
+    if (range >= 1) w->variation = (int)(wb_rng_next(&w->evo_rng) & 3u);
+    if (range >= 2) {
+        w->activity = clampf(w->activity + wb_rng_bi(&w->evo_rng) * 0.10f, 0.05f, 1.0f);
+        w->shape    = clampf(w->shape    + wb_rng_bi(&w->evo_rng) * 0.10f, 0.0f,  1.0f);
+    }
+    w->params_dirty = 1;
 }

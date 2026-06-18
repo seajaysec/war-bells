@@ -72,8 +72,29 @@ typedef struct wb {
     float spdl_l[WB_SPDL_LEN], spdl_r[WB_SPDL_LEN];
     int   spdl_w; float space_dtime, space_fb;
 
+    /* shimmer reverb: pitch-shifted feedback into the reverb tail */
+    int   shimmer;                    /* 0 Off 1 Oct+ 2 Oct- 3 5th */
+    wb_pshift_t shimL, shimR;
+    float shim_l, shim_r;
+
     /* runtime */
     int   grain_env;                  /* 0 Soft 1 Pluck 2 Swell 3 Gate */
+    int   pitch_scale;                /* 0 off, else snap grain pitch to a scale */
+
+    /* Motion: one tempo-synced LFO modulating a chosen macro */
+    int   mot_target;                 /* 0 Off 1 Act 2 Filt 3 Space 4 Mix 5 Mod */
+    int   mot_rate;                   /* division index (8bar..1/8) */
+    int   mot_shape;                  /* 0 Sine 1 Tri 2 Ramp 3 Rand */
+    float mot_depth;                  /* 0..1 */
+    double mot_phase; uint32_t mot_rng; float mot_rng_val; int mot_newrand;
+
+    /* Evolve / Dice: clocked, bounded re-rolling of texture for generative drift */
+    float evolve;                     /* 0 off .. 1 fast drift */
+    int   evo_range;                  /* 0 Soft 1 Mid 2 Wild */
+    double evo_acc; uint32_t evo_rng;
+
+    float duck;                       /* 0..1 sidechain wet to input level (blooms in gaps) */
+    float width;                      /* reverb stereo width (1.0 = current wide default) */
     int   preset;                     /* last-selected character preset (display) */
     float tempo_drift;                /* Free-mode bounded random walk on tempo */
     uint32_t drift_rng;
@@ -112,6 +133,7 @@ void  wb_apply_effect(wb_t *w);
 void  wb_apply_tone(wb_t *w);
 void  wb_apply_space(wb_t *w);
 void  wb_apply_all(wb_t *w);
+void  wb_evolve_roll(wb_t *w, int range);   /* generative re-roll (Evolve clock + Dice) */
 
 /* params.c */
 void wb_params_defaults(wb_t *w);

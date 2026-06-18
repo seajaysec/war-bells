@@ -75,8 +75,22 @@ Variation labels are per-effect (shown on screen). Activity re-interprets per ef
 - **Clock** (Time page) — **Free** (default: a free-running internal tempo with gentle drift,
   so rhythmic engines breathe), **Sync** (locks to the host clock), **Man** (fixed BPM).
   **Subdiv** = 1/4 · 1/2 · 1x · 2x · 4x · 8x.
-- **Reverb** (Space FX) — four modes: Room / Dark / Hall / Vast. **Pitch mod** = Mod Depth +
-  Mod Rate (gentle chorus → detuned wobble).
+- **Reverb** (Space FX) — four modes: Room / Dark / Hall / Vast, with **Width** (stereo) and
+  **Shimmer** (the reverb tail fed back through a pitch-shifter, Oct± / 5th). **Pitch mod** = Mod
+  Depth + Mod Rate (gentle chorus → detuned wobble).
+- **Scale** (Tone page) — snaps pitched grains/glides to a scale (Maj / Min / Pent / Oct / 5th)
+  so movement stays in key; Off = bit-identical to no quantization.
+
+## 4b. Movement & generative
+
+- **Motion** (Motion page) — one tempo-synced LFO (Sine / Tri / Ramp / Rand, 8 bar…1/8) that
+  modulates a chosen macro (**Mod Dest** = Activity / Filter / Space / Mix / Mod). Applied as a
+  per-block, non-destructive overlay — the stored param value is untouched.
+- **Evolve / Dice** (Generate page) — on a tempo-synced clock (faster as Evolve → 1) the engine
+  re-rolls per-voice scatter, and (by **Range**: Soft / Mid / Wild) the variation and small
+  activity/shape nudges, so textures drift and never repeat. **Dice** fires one re-roll now.
+- **Duck** (Perform page) — sidechains the wet level to the input envelope (`transient.h`) so the
+  effect blooms in the gaps between notes.
 
 ---
 
@@ -114,8 +128,8 @@ minimal manifest; the plugin serves its edit metadata at runtime via `get_param(
 (typed, units, per-effect variation options) and a duplicate-free `get_param("ui_hierarchy")`,
 so all 39 params are editable on the device with short, glanceable labels.
 
-Pages: **Root · Tone · Time · Space FX · Perform · Looper · Looper 2 · User Slots · Config**
-(≤ 8 knobs each). A compact `ui_chain.js` exposes the macros in the Signal-Chain quick editor,
+Pages: **Root · Tone · Time · Space FX · Motion · Generate · Perform · Looper · Looper 2 ·
+User Slots · Config** (≤ 8 knobs each). A compact `ui_chain.js` exposes the macros in the Signal-Chain quick editor,
 and `web_ui.html` provides a browser controller + manual. The looper transport is menu-driven
 (the Transport enum acts as the footswitch). Onset effects fire from audio transients + MIDI
 note-ons.

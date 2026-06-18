@@ -56,6 +56,9 @@ static void *v2_create(const char *module_dir, const char *config_json) {
     wb_svf_reset(&w->filt_l); wb_svf_reset(&w->filt_r);
     wb_looper_init(&w->looper, w->lp_bl, w->lp_br, w->lp_ol, w->lp_or, lcap);
     wb_transient_init(&w->trans);
+    wb_pshift_init(&w->shimL); wb_pshift_init(&w->shimR); w->shim_l = w->shim_r = 0.0f;
+    w->mot_rng = 0x2BAD51E5u; w->mot_phase = 0.0; w->mot_newrand = 1;
+    w->evo_rng = 0x9E3779B1u; w->evo_acc = 0.0;
     w->bypass_lag = 0.005f;
     w->space_dtime = 0.25f; w->space_fb = 0.3f;
     w->drift_rng = 0x51ED77u;
@@ -105,6 +108,13 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         w->tempo_drift = 0.0f;
     }
     if (fabsf(bpm - w->cur_tempo) > 0.4f) { w->cur_tempo = bpm; w->params_dirty = 1; }
+    /* Evolve: generative re-roll on a tempo-synced clock (faster as evolve -> 1) */
+    if (w->evolve > 1e-3f) {
+        float beat = 60.0f / (w->cur_tempo > 1.0f ? w->cur_tempo : 120.0f);
+        float interval = wb_lerpf(4.0f, 0.25f, w->evolve) * beat;   /* beats between rolls */
+        w->evo_acc += (double)frames / (double)WB_SR;
+        if (w->evo_acc >= (double)interval) { w->evo_acc = 0.0; wb_evolve_roll(w, w->evo_range); }
+    }
     if (w->params_dirty) { wb_apply_effect(w); wb_apply_space(w); w->params_dirty = 0; }
 
     const wb_var_t *var = &WB_EFFECTS[w->effect].vars[w->variation];
@@ -112,6 +122,35 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
     int midi_on = w->midi_onset; w->midi_onset = 0;
     float bcoeff = 1.0f / (w->bypass_lag * WB_SR + 1.0f);
     float msqrt = sqrtf(w->mix), dsqrt = sqrtf(1.0f - w->mix);
+
+    /* Motion: one tempo-synced LFO modulating a chosen macro (computed per block) */
+    float spaceEff = w->space;
+    if (w->mot_target > 0 && w->mot_depth > 1e-4f) {
+        float beat = 60.0f / (w->cur_tempo > 1.0f ? w->cur_tempo : 120.0f);
+        static const float DIV_BEATS[7] = { 32,16,8,4,2,1,0.5f }; /* 8/4/2/1bar,1/2,1/4,1/8 */
+        float period = DIV_BEATS[w->mot_rate % 7] * beat; if (period < 0.02f) period = 0.02f;
+        w->mot_phase += (double)frames / (double)WB_SR / (double)period;
+        if (w->mot_phase >= 1.0) { w->mot_phase -= floor(w->mot_phase); w->mot_newrand = 1; }
+        double ph = w->mot_phase; float lfo;
+        switch (w->mot_shape) {
+            case 1: lfo = (ph<0.5)?(float)(ph*4.0-1.0):(float)(3.0-ph*4.0); break; /* Tri */
+            case 2: lfo = (float)(ph*2.0-1.0); break;                              /* Ramp */
+            case 3: if (w->mot_newrand){ w->mot_rng_val = wb_rng_bi(&w->mot_rng); w->mot_newrand=0; }
+                    lfo = w->mot_rng_val; break;                                   /* Rand S&H */
+            default: lfo = sinf((float)(2.0*M_PI*ph)); break;                      /* Sine */
+        }
+        float a = lfo * w->mot_depth * 0.5f;
+        switch (w->mot_target) {
+            case 1: { float b=w->activity; w->activity=wb_clampf(b+a,0,1);
+                      wb_apply_effect(w); w->activity=b; } break;                  /* Act */
+            case 2: { float fe=wb_clampf(w->filter+a,0,1);
+                      float fc=wb_lerpf(120.0f,19000.0f,powf(fe,1.6f));
+                      wb_svf_set(&w->filt_l,fc,w->fres); wb_svf_set(&w->filt_r,fc,w->fres); } break; /* Filt */
+            case 3: spaceEff = wb_clampf(w->space+a,0,1); break;                   /* Space */
+            case 4: { float me=wb_clampf(w->mix+a,0,1); msqrt=sqrtf(me); dsqrt=sqrtf(1.0f-me); } break; /* Mix */
+            case 5: w->chorus.depth = wb_clampf(w->mod_depth+a,0,1); break;        /* Mod */
+        }
+    }
 
     for (int i = 0; i < frames; i++) {
         float inL = wb_i16_to_f(audio[i*2])   * w->input_gain;
@@ -133,18 +172,32 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
 
         /* Looper Only mutes the effect (grains/delay) but keeps dry + space + filter + loop */
         float wetGain = w->loop_only ? 0.0f : 1.0f;
+        /* Duck: sidechain the wet to the input level so the effect blooms in the gaps */
+        if (w->duck > 1e-4f)
+            wetGain *= 1.0f - w->duck * wb_clampf(w->trans.env_slow * 6.0f, 0.0f, 1.0f);
         float sigL = inL * dsqrt + wetL * w->effect_vol * msqrt * wetGain;
         float sigR = inR * dsqrt + wetR * w->effect_vol * msqrt * wetGain;
 
         wb_chorus_process(&w->chorus, sigL, sigR, &sigL, &sigR);
 
-        if (w->space > 1e-4f) {
+        if (spaceEff > 1e-4f) {
             float sdL, sdR; wb_space_delay(w, sigL, sigR, &sdL, &sdR);
             float rvL, rvR;
-            wb_reverb_process(&w->reverb, sigL + sdL*0.5f, sigR + sdR*0.5f, &rvL, &rvR);
+            if (w->shimmer) {
+                /* shimmer: feed a pitch-shifted copy of the reverb tail back into its input */
+                static const float SHIM_RATIO[4] = { 1.0f, 2.0f, 0.5f, 1.5f }; /* -,oct+,oct-,5th */
+                float rt = SHIM_RATIO[w->shimmer & 3];
+                wb_reverb_process(&w->reverb, sigL + sdL*0.5f + w->shim_l*0.55f,
+                                              sigR + sdR*0.5f + w->shim_r*0.55f, &rvL, &rvR);
+                w->shim_l = wb_softclip(wb_pshift_process(&w->shimL, rvL, rt));
+                w->shim_r = wb_softclip(wb_pshift_process(&w->shimR, rvR, rt));
+            } else {
+                wb_reverb_process(&w->reverb, sigL + sdL*0.5f, sigR + sdR*0.5f, &rvL, &rvR);
+                w->shim_l = 0.0f; w->shim_r = 0.0f;
+            }
             float spL = sdL + rvL, spR = sdR + rvR;
-            sigL = wb_lerpf(sigL, spL, w->space);
-            sigR = wb_lerpf(sigR, spR, w->space);
+            sigL = wb_lerpf(sigL, spL, spaceEff);
+            sigR = wb_lerpf(sigR, spR, spaceEff);
         }
 
         sigL = wb_svf_lp(&w->filt_l, sigL);

@@ -168,6 +168,28 @@ int main(void){
     api->set_param(inst,"user_slot","1"); api->set_param(inst,"user_op","Del");
     api->set_param(inst,"effect","Stack"); api->set_param(inst,"activity","0.3");
 
+    /* value-adds: shimmer / scale / motion / evolve / duck / width engage + stay bounded */
+    api->set_param(inst,"mix","0.85"); api->set_param(inst,"space","0.6"); api->set_param(inst,"effect","Cloud");
+    api->set_param(inst,"shimmer","Oct+"); api->set_param(inst,"pitch_scale","Maj");
+    api->set_param(inst,"width","0.5"); api->set_param(inst,"duck","0.7");
+    api->set_param(inst,"mot_target","Filt"); api->set_param(inst,"mot_depth","0.8"); api->set_param(inst,"mot_rate","1/4");
+    api->set_param(inst,"evolve","0.9"); api->set_param(inst,"evo_range","Wild");
+    { double rmax=0; for(int blk=0;blk<160;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128);
+        double r=rms(buf,128); if(r>rmax)rmax=r; }
+      printf("  value-adds peak rms=%.4f\n", rmax);
+      CHECK("value-adds stay bounded (shimmer feedback safe)", rmax>0.0005 && rmax<0.999); }
+    { char sb2[16];
+      api->get_param(inst,"shimmer",sb2,sizeof sb2);     CHECK("shimmer round-trips", strcmp(sb2,"Oct+")==0);
+      api->get_param(inst,"pitch_scale",sb2,sizeof sb2); CHECK("scale round-trips", strcmp(sb2,"Maj")==0);
+      api->get_param(inst,"mot_target",sb2,sizeof sb2);  CHECK("motion target round-trips", strcmp(sb2,"Filt")==0);
+      api->get_param(inst,"evo_range",sb2,sizeof sb2);   CHECK("evo_range round-trips", strcmp(sb2,"Wild")==0);
+      api->set_param(inst,"dice","Roll"); api->get_param(inst,"dice",sb2,sizeof sb2);
+      CHECK("dice is momentary", strcmp(sb2,"-")==0); }
+    api->set_param(inst,"shimmer","Off"); api->set_param(inst,"pitch_scale","Off");
+    api->set_param(inst,"mot_target","Off"); api->set_param(inst,"evolve","0");
+    api->set_param(inst,"duck","0"); api->set_param(inst,"width","1");
+    api->set_param(inst,"effect","Stack"); api->set_param(inst,"mix","0.8"); api->set_param(inst,"space","0.3");
+
     /* MIDI: CC6 (Activity) and program change should move params */
     if (api->on_midi) {
         uint8_t cc[3]={0xB0,6,127}; api->on_midi(inst,cc,3,0);
