@@ -165,6 +165,7 @@
     <span class="cnow" id="collapsedNow"></span>
     <span class="grow"></span>
     <button class="mini" id="demoBtn" title="play looping demo audio in the browser">▶ Demo audio</button>
+    <select class="mini" id="instSel" style="display:none" title="which War Bells instance to control"></select>
     <input class="host" id="hostInput" placeholder="hostname or IP : port" title="your Move's host:port, e.g. move.local:7700 or 192.168.1.42:7700">
     <button class="mini" id="connectBtn">Connect</button>
     <button class="mini" id="themeBtn" title="theme">◐</button>
@@ -526,9 +527,11 @@ function applyPreset(i){const s=PRESETS[i].s;for(const k in s){if(P[k]){P[k].v=s
 /* =====================================================================
    LIVE BRIDGE — schwung-manager /ws/remote-ui (or embedded schwungRemote)
    ===================================================================== */
-const Bridge={mode:"demo",ws:null,slot:null,comp:null,applying:false,host:null};
+const Bridge={mode:"demo",ws:null,slot:null,comp:null,applying:false,host:null,instances:[],scanT:0};
 function setStatus(mode,text){const d=document.getElementById("dot"),t=document.getElementById("statusText");
- d.className="dot "+(mode==="live"?"live":mode==="err"?"err":"demo");t.textContent=text;Bridge.mode=mode;}
+ d.className="dot "+(mode==="live"?"live":mode==="err"?"err":"demo");t.textContent=text;Bridge.mode=mode;
+ const db=document.getElementById("demoBtn"); if(db) db.style.display=(mode==="live")?"none":"";  /* demo audio only when not controlling hardware */
+}
 /* serialize a param for set_param (device accepts option strings + numbers) */
 function serialize(key){const p=P[key];
  if(p.t==="pct"||p.t==="bpm"||p.t==="x")return String(p.v);
@@ -557,23 +560,45 @@ function defaultHost(){
  if(location.host&&location.protocol.startsWith("http")&&location.host.indexOf("github.io")<0)return location.host;
  return "move.local:7700";
 }
+const instSel=document.getElementById("instSel");
+function instLabel(x){ return "slot "+x.slot+" · "+x.comp.toUpperCase(); }
+function refreshInstPicker(){
+ if(!instSel)return;
+ instSel.innerHTML=""; Bridge.instances.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=instLabel(x);instSel.appendChild(o);});
+ const idx=Bridge.instances.findIndex(x=>x.slot===Bridge.slot&&x.comp===Bridge.comp);
+ instSel.value=Math.max(0,idx);
+ instSel.style.display=Bridge.instances.length>1?"":"none";   /* show picker only if >1 */
+}
+function selectInstance(i){ const x=Bridge.instances[i]; if(!x)return; Bridge.slot=x.slot; Bridge.comp=x.comp;
+ setStatus("live","live · "+instLabel(x)+(Bridge.instances.length>1?" ("+Bridge.instances.length+" found)":""));
+ try{Bridge.ws.send(JSON.stringify({type:"unsubscribe",slot:x.slot})); Bridge.ws.send(JSON.stringify({type:"subscribe",slot:x.slot}));}catch(e){} /* re-fetch its values */
+}
+if(instSel) instSel.onchange=()=>selectInstance(+instSel.value);
 function connectLive(host){
  host=(host||defaultHost()).trim();
- if(location.protocol==="https:"){setStatus("demo","demo (https can't reach ws://) — open from your Move's http URL to go live");return;}
- Bridge.host=host; localStorage.setItem("wb_host",host);
+ if(location.protocol==="https:"){setStatus("demo","interactive demo — open this page from your Move (http) to control hardware");return;}
+ Bridge.host=host; localStorage.setItem("wb_host",host); Bridge.instances=[];
  try{if(Bridge.ws)Bridge.ws.close();}catch(e){}
- setStatus("demo","connecting to "+host+"…");
- let ws;try{ws=new WebSocket("ws://"+host+"/ws/remote-ui");}catch(e){setStatus("err","cannot connect");return;}
- Bridge.ws=ws;let found=false;
- ws.onopen=()=>{for(let s=0;s<8;s++)ws.send(JSON.stringify({type:"subscribe",slot:s}));
-   setTimeout(()=>{if(!found)setStatus("demo","connected · load War Bells in a slot, then Connect");},2500);};
+ setStatus("demo","scanning "+host+" for War Bells…");
+ let ws;try{ws=new WebSocket("ws://"+host+"/ws/remote-ui");}catch(e){setStatus("err","cannot reach "+host);return;}
+ Bridge.ws=ws;
+ ws.onopen=()=>{ for(let s=0;s<8;s++)ws.send(JSON.stringify({type:"subscribe",slot:s}));
+   clearTimeout(Bridge.scanT);
+   Bridge.scanT=setTimeout(()=>{ if(Bridge.mode!=="live") setStatus("err","no War Bells found — load it as an FX in a chain slot, then Connect"); }, 30000); };
  ws.onerror=()=>setStatus("err","connection failed · "+host);
- ws.onclose=()=>{if(Bridge.mode==="live")setStatus("err","disconnected");};
+ ws.onclose=()=>{ if(Bridge.mode==="live")setStatus("err","disconnected — Connect to retry"); };
  ws.onmessage=(e)=>{let m;try{m=JSON.parse(e.data);}catch(_){return;}
    if(m.type==="slot_info"){
-     for(const c of["fx1","fx2"]){if(m[c]==="war_bells"&&!found){found=true;Bridge.slot=m.slot;Bridge.comp=c;
-       setStatus("live","live · slot "+m.slot+" "+c.toUpperCase());}}
-   }else if(m.type==="param_update"&&found&&m.slot===Bridge.slot){
+     for(const c of["fx1","fx2"]){ if(m[c]==="war_bells"){
+       if(!Bridge.instances.some(x=>x.slot===m.slot&&x.comp===c)){
+         Bridge.instances.push({slot:m.slot,comp:c}); refreshInstPicker();
+         if(Bridge.mode!=="live") selectInstance(Bridge.instances.length-1);   /* lock to first found */
+         else setStatus("live","live · "+instLabel(Bridge.instances.find(x=>x.slot===Bridge.slot&&x.comp===Bridge.comp))+" ("+Bridge.instances.length+" found)");
+       }
+     }}
+     if(Bridge.mode!=="live"){ const n=Object.keys(Bridge.instances).length;
+       setStatus("demo","scanning slots… "+(n?("("+n+" found)"):"")); }
+   }else if(m.type==="param_update"&&Bridge.mode==="live"&&m.slot===Bridge.slot){
      Bridge.applying=true;
      for(const fk in m.params){const i=fk.indexOf(":");const comp=fk.slice(0,i),key=fk.slice(i+1);
        if(comp===Bridge.comp)ingest(key,m.params[fk]);}
@@ -861,8 +886,13 @@ demoBtn.onclick=toggleDemo;
 
 /* ---------- boot ---------- */
 renderAll();
+(function setupMode(){   /* https = demo+manual only; http (served from the Move) = controller */
+ const controllable = location.protocol!=="https:";
+ hostInput.style.display = controllable?"":"none";
+ document.getElementById("connectBtn").style.display = controllable?"":"none";
+})();
 if(!tryEmbedded()){
- if(location.protocol==="https:")setStatus("demo","demo mode · open from your Move for live control");
+ if(location.protocol==="https:")setStatus("demo","interactive demo & manual — open from your Move to control hardware");
  else connectLive(defaultHost());
 }
 </script>
