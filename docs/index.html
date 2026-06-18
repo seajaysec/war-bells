@@ -63,8 +63,15 @@
   input.host{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
     padding:5px 9px;font:13px ui-monospace,monospace;width:150px}
 
-  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:10px}
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:10px;
+    overflow:hidden;max-height:1400px;opacity:1;transition:max-height .38s ease,opacity .28s ease,margin-top .28s ease}
   @media(max-width:820px){.hero{grid-template-columns:1fr}}
+  .synthbar.collapsed .hero{max-height:0;opacity:0;margin-top:0;pointer-events:none}
+  #collapseBtn{transition:transform .3s ease}
+  .synthbar.collapsed #collapseBtn{transform:rotate(-90deg)}
+  .cnow{font:12px ui-monospace,monospace;color:var(--dim);display:none;max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .synthbar.collapsed .cnow{display:inline}
+  .mini.on{background:var(--amber);color:#241400;border-color:var(--amber);font-weight:700}
   .glass{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
   .padbox{padding:14px}
   .pick{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
@@ -149,10 +156,13 @@
 <div class="synthbar">
  <div class="inner">
   <div class="statusrow">
+    <button class="mini" id="collapseBtn" title="collapse / expand the synth">▾</button>
     <span class="brand">War Bells</span>
     <span class="status"><span class="dot" id="dot"></span><span id="statusText">starting…</span></span>
+    <span class="cnow" id="collapsedNow"></span>
     <span class="grow"></span>
-    <input class="host" id="hostInput" placeholder="move.local:7700" title="device host:port">
+    <button class="mini" id="demoBtn" title="play looping demo audio in the browser">▶ Demo audio</button>
+    <input class="host" id="hostInput" placeholder="hostname or IP : port" title="your Move's host:port, e.g. move.local:7700 or 192.168.1.42:7700">
     <button class="mini" id="connectBtn">Connect</button>
     <button class="mini" id="themeBtn" title="theme">◐</button>
   </div>
@@ -541,12 +551,14 @@ function pushToDevice(key){
  try{Bridge.ws.send(JSON.stringify(msg));}catch(e){}
 }
 function defaultHost(){
- if(location.host&&location.protocol.startsWith("http"))return location.host;
+ const saved=localStorage.getItem("wb_host"); if(saved)return saved;
+ if(location.host&&location.protocol.startsWith("http")&&location.host.indexOf("github.io")<0)return location.host;
  return "move.local:7700";
 }
 function connectLive(host){
- if(location.protocol==="https:"){setStatus("demo","demo · open from your Move (http) for live control");return;}
- host=host||defaultHost();Bridge.host=host;
+ host=(host||defaultHost()).trim();
+ if(location.protocol==="https:"){setStatus("demo","demo (https can't reach ws://) — open from your Move's http URL to go live");return;}
+ Bridge.host=host; localStorage.setItem("wb_host",host);
  try{if(Bridge.ws)Bridge.ws.close();}catch(e){}
  setStatus("demo","connecting to "+host+"…");
  let ws;try{ws=new WebSocket("ws://"+host+"/ws/remote-ui");}catch(e){setStatus("err","cannot connect");return;}
@@ -762,6 +774,78 @@ function doUserOp(op){const slot=P.user_slot.v,k="wb_demo_slot_"+slot;
 /* ---------- connect controls ---------- */
 const hostInput=document.getElementById("hostInput");hostInput.value=defaultHost();
 document.getElementById("connectBtn").onclick=()=>connectLive(hostInput.value.trim());
+hostInput.addEventListener("keydown",e=>{ if(e.key==="Enter")connectLive(hostInput.value.trim()); });
+
+/* ---------- collapse (manual click + graceful auto on scroll) ---------- */
+const synthbar=document.querySelector(".synthbar"),collapseBtn=document.getElementById("collapseBtn"),cnow=document.getElementById("collapsedNow");
+let manualCollapse=null;
+function setCollapsed(c){ synthbar.classList.toggle("collapsed",c); collapseBtn.textContent=c?"▸":"▾"; }
+collapseBtn.onclick=()=>{ const c=!synthbar.classList.contains("collapsed"); manualCollapse=c; setCollapsed(c); };
+window.addEventListener("scroll",()=>{ if(manualCollapse!==null)return; const y=window.scrollY||0;
+  if(y>170 && !synthbar.classList.contains("collapsed")) setCollapsed(true);
+  else if(y<70 && synthbar.classList.contains("collapsed")) setCollapsed(false); },{passive:true});
+subs.add(()=>{ const e=EFFECTS[P.effect.v]; cnow.textContent="· "+e.n+"·"+e.vl[P.variation.v]; });
+
+/* ---------- demo audio (Web Audio, browser-only — gives War Bells something to chew on) ----------
+   Loops 4 bars: 2 bars of a kick/hat/chord progression, then 2 bars of silence so the wet tail
+   rings out and Duck blooms. It's a representative global FX chain (filter / delay / chorus /
+   reverb / mix / duck driven by the live params) — not the full granular engine. */
+const DEMO={ctx:null,nodes:null,timer:null,step:0,next:0,on:false};
+const demoBtn=document.getElementById("demoBtn");
+const CHORDS=[[110,220,261.63,329.63],[87.31,174.61,220,261.63]]; /* Am, F (per playing bar) */
+function makeIR(ctx,sec,decay){ const n=(ctx.sampleRate*sec)|0,b=ctx.createBuffer(2,n,ctx.sampleRate);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay);}return b; }
+function buildDemo(ctx){
+  const master=ctx.createGain(); master.gain.value=0.85; master.connect(ctx.destination);
+  const inBus=ctx.createGain(), dry=ctx.createGain(), wet=ctx.createGain(), duck=ctx.createGain();
+  const filt=ctx.createBiquadFilter(); filt.type="lowpass"; filt.frequency.value=12000;
+  const dl=ctx.createDelay(2.0), fb=ctx.createGain(); fb.gain.value=0.4; dl.connect(fb); fb.connect(dl);
+  const ch=ctx.createDelay(0.06), chlfo=ctx.createOscillator(), chdepth=ctx.createGain();
+  chlfo.frequency.value=0.8; chdepth.gain.value=0; chlfo.connect(chdepth); chdepth.connect(ch.delayTime); chlfo.start();
+  const rev=ctx.createConvolver(); rev.buffer=makeIR(ctx,2.4,2.4); const revSend=ctx.createGain(); revSend.gain.value=0.4;
+  inBus.connect(dry); dry.connect(master);
+  inBus.connect(filt); filt.connect(dl); dl.connect(ch);
+  ch.connect(wet); wet.connect(duck);
+  ch.connect(revSend); revSend.connect(rev); rev.connect(duck);
+  duck.connect(master);
+  return {master,inBus,dry,wet,duck,filt,dl,fb,ch,chlfo,chdepth,rev,revSend};
+}
+function env(ctx,g,t,a,d,peak){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(0.0008,t+a+d); }
+function kick(ctx,dst,t){ const o=ctx.createOscillator(),g=ctx.createGain(); o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(48,t+0.12);
+  env(ctx,g,t,0.002,0.16,0.9); o.connect(g); g.connect(dst); o.start(t); o.stop(t+0.2); }
+function hat(ctx,dst,t){ const n=ctx.createBufferSource(),b=ctx.createBuffer(1,1024,ctx.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<1024;i++)d[i]=Math.random()*2-1; n.buffer=b; const hp=ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=7000;
+  const g=ctx.createGain(); env(ctx,g,t,0.001,0.04,0.25); n.connect(hp); hp.connect(g); g.connect(dst); n.start(t); n.stop(t+0.05); }
+function chord(ctx,dst,t,freqs,dur){ const g=ctx.createGain(); env(ctx,g,t,0.02,dur,0.22); g.connect(dst);
+  freqs.forEach(f=>{const o=ctx.createOscillator(); o.type="triangle"; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+dur+0.1);}); }
+function duckHit(ctx,duck,t){ const amt=P.duck.v; if(amt<0.01)return;
+  duck.gain.cancelScheduledValues(t); duck.gain.setValueAtTime(Math.max(0.12,1-amt*0.85),t); duck.gain.linearRampToValueAtTime(1.0,t+0.5); }
+function demoTick(){ const ctx=DEMO.ctx,N=DEMO.nodes; if(!ctx||!N)return;
+  const bpm=P.tempo.v||110, stepDur=60/bpm/4;
+  let mot=0; if(P.mot_target.v>0){ const beats=[32,16,8,4,2,1,0.5][P.mot_rate.v]||4, ps=beats*4; mot=Math.sin(2*Math.PI*((DEMO.step%ps)/ps))*P.mot_depth.v*0.5; }
+  const fmod=P.mot_target.v===2?mot:0, spmod=P.mot_target.v===3?mot:0, mxmod=P.mot_target.v===4?mot:0;
+  const fe=Math.max(0,Math.min(1,P.filter.v+fmod)), fc=Math.max(80,Math.min(18000,120*Math.pow(150,Math.pow(fe,1.6))));
+  const now=ctx.currentTime, mix=Math.max(0,Math.min(1,P.mix.v+mxmod));
+  N.filt.frequency.setTargetAtTime(fc,now,0.05);
+  N.fb.gain.setTargetAtTime(Math.min(0.88,P.repeats.v*0.85),now,0.05);
+  N.wet.gain.setTargetAtTime(mix,now,0.05); N.dry.gain.setTargetAtTime(1-mix*0.85,now,0.05);
+  N.revSend.gain.setTargetAtTime(Math.max(0,Math.min(1,P.space.v+spmod))*0.7,now,0.05);
+  N.chdepth.gain.setTargetAtTime(P.mod_depth.v*0.008,now,0.05); N.chlfo.frequency.setTargetAtTime(0.2+P.mod_rate.v*8,now,0.05);
+  N.dl.delayTime.setTargetAtTime(Math.max(0.03,Math.min(1.5,(60/bpm)/([0.25,0.5,1,2,4,8][P.subdiv.v]||1))),now,0.1);
+  while(DEMO.next < now+0.25){ const step=DEMO.step%64, bar=(step/16)|0, t=DEMO.next;
+    if(bar<2){ if(step%4===0){kick(ctx,N.inBus,t); duckHit(ctx,N.duck,t);}
+      if(step%4===2) hat(ctx,N.inBus,t);
+      if(step%16===0){ chord(ctx,N.inBus,t,CHORDS[((step/16)|0)%CHORDS.length], 60/bpm*4*0.95); duckHit(ctx,N.duck,t); } }
+    DEMO.next+=stepDur; DEMO.step=(DEMO.step+1)%600000; }
+}
+function toggleDemo(){
+  if(DEMO.on){ DEMO.on=false; clearInterval(DEMO.timer); if(DEMO.ctx)DEMO.ctx.suspend(); demoBtn.classList.remove("on"); demoBtn.textContent="▶ Demo audio"; return; }
+  try{ if(!DEMO.ctx){ DEMO.ctx=new (window.AudioContext||window.webkitAudioContext)(); DEMO.nodes=buildDemo(DEMO.ctx); }
+    DEMO.ctx.resume(); DEMO.next=DEMO.ctx.currentTime+0.1; DEMO.step=0; DEMO.on=true;
+    DEMO.timer=setInterval(demoTick,60); demoBtn.classList.add("on"); demoBtn.textContent="⏸ Demo audio";
+  }catch(e){ demoBtn.textContent="(no audio)"; }
+}
+demoBtn.onclick=toggleDemo;
 
 /* ---------- boot ---------- */
 renderAll();
