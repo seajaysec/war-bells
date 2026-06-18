@@ -92,6 +92,9 @@
     transform-origin:50% 22px;border-radius:2px}
   .knob .lab{font-size:11px;color:var(--dim);text-align:center;line-height:1.15;height:26px}
   .knob .val{font:11px ui-monospace,monospace;color:var(--oled)}
+  .knob select.kbsel{width:100%;max-width:84px;background:var(--panel2);border:1px solid var(--line);
+    color:var(--ink);border-radius:7px;padding:5px 4px;font-size:12px;cursor:pointer;height:30px}
+  .plabel{font-size:12px;color:var(--dim);font-weight:600}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--dim);background:var(--panel2)}
   .chip:hover{border-color:var(--amber);color:var(--ink)}
@@ -169,13 +172,12 @@
   <div class="hero">
     <div class="glass padbox">
       <div class="pick">
-        <select class="sel" id="effSel" title="Effect"></select>
-        <select class="sel" id="varSel" title="Variation"></select>
+        <label class="plabel">Preset</label>
+        <select class="sel" id="presetSel" title="Preset"></select>
         <span class="vchip" id="catChip">—</span>
       </div>
       <div class="tabs" id="tabs"></div>
       <div class="knobs" id="knobRow"></div>
-      <div class="chips" id="presetChips"></div>
       <div class="nowline" id="nowLine"></div>
     </div>
     <div class="glass padbox">
@@ -595,14 +597,11 @@ function tryEmbedded(){
 /* =====================================================================
    RENDER
    ===================================================================== */
-const effSel=document.getElementById("effSel"),varSel=document.getElementById("varSel");
-EFFECTS.forEach((e,i)=>{const o=document.createElement("option");o.value=i;o.textContent=e.cat+" · "+e.n;effSel.appendChild(o);});
-effSel.onchange=()=>setVal("effect",+effSel.value);
-varSel.onchange=()=>setVal("variation",+varSel.value);
+const presetSel=document.getElementById("presetSel");
+PRESETS.forEach((p,i)=>{const o=document.createElement("option");o.value=i;o.textContent=p.n+" — "+p.d;presetSel.appendChild(o);});
+presetSel.onchange=()=>{P.preset.v=+presetSel.value;applyPreset(+presetSel.value);notify("*");};
 function renderPickers(){
- effSel.value=P.effect.v;
- varSel.innerHTML="";EFFECTS[P.effect.v].vl.forEach((l,i)=>{const o=document.createElement("option");o.value=i;
-   o.textContent=l;varSel.appendChild(o);});varSel.value=P.variation.v;
+ presetSel.value=P.preset.v;
  const e=EFFECTS[P.effect.v];document.getElementById("catChip").textContent=e.cat;
  document.getElementById("nowLine").textContent=`${e.cat} · ${e.n} · ${e.vl[P.variation.v]} — ${e.v[P.variation.v]}`;
 }
@@ -613,13 +612,23 @@ function renderTabs(){[...tabsEl.children].forEach(b=>b.classList.toggle("on",b.
 const knobRow=document.getElementById("knobRow");
 function renderKnobs(){const pg=PAGES[curPage];knobRow.innerHTML="";
  for(let i=0;i<8;i++){const key=pg.knobs[i];const w=document.createElement("div");w.className="knob";
-   const d=document.createElement("div");d.className="dial"+(key?"":" empty");
-   const ind=document.createElement("div");ind.className="ind";d.appendChild(ind);
-   const lab=document.createElement("div");lab.className="lab";const val=document.createElement("div");val.className="val";
-   if(key){ind.style.transform=`translateX(-50%) rotate(${-140+frac(key)*280}deg)`;
-     lab.textContent=P[key].name;val.textContent=fmt(key);attachDial(d,key);}
-   else{ind.style.opacity=0;}
-   w.append(d,lab,val);knobRow.appendChild(w);}
+   if(!key){const d=document.createElement("div");d.className="dial empty";const lab=document.createElement("div");
+     lab.className="lab";w.append(d,lab);knobRow.appendChild(w);continue;}
+   const p=P[key],lab=document.createElement("div");lab.className="lab";lab.textContent=p.name;
+   if(p.t==="enum"||p.t==="var"){            /* components are dropdowns, not knobs */
+     const sel=document.createElement("select");sel.className="kbsel";
+     const opts=(p.t==="var")?EFFECTS[P.effect.v].vl:p.o;
+     opts.forEach((o,idx)=>{const op=document.createElement("option");op.value=idx;op.textContent=o;sel.appendChild(op);});
+     sel.value=p.v;sel.onchange=()=>setVal(key,+sel.value);
+     w.append(sel,lab);
+   }else{
+     const d=document.createElement("div");d.className="dial";
+     const ind=document.createElement("div");ind.className="ind";d.appendChild(ind);
+     ind.style.transform=`translateX(-50%) rotate(${-140+frac(key)*280}deg)`;
+     const val=document.createElement("div");val.className="val";val.textContent=fmt(key);
+     attachDial(d,key);w.append(d,lab,val);
+   }
+   knobRow.appendChild(w);}
 }
 function attachDial(el,key){let last=0,active=false,acc=0;
  const s=e=>{active=true;last=(e.touches?e.touches[0].clientY:e.clientY);acc=0;e.preventDefault();};
@@ -631,10 +640,6 @@ function attachDial(el,key){let last=0,active=false,acc=0;
  window.addEventListener("mouseup",u);window.addEventListener("touchend",u);
  el.addEventListener("wheel",e=>{e.preventDefault();bump(key,e.deltaY<0?1:-1);},{passive:false});
 }
-/* preset chips */
-const pc=document.getElementById("presetChips");
-PRESETS.forEach((p,i)=>{const b=document.createElement("span");b.className="chip";b.textContent=p.n;
- b.title=p.d;b.onclick=()=>{P.preset.v=i;applyPreset(i);};pc.appendChild(b);});
 /* effect cards + legend */
 const fxGrid=document.getElementById("fxGrid");
 EFFECTS.forEach((e,i)=>{const d=document.createElement("div");d.className="fx";
@@ -790,7 +795,7 @@ subs.add(()=>{ const e=EFFECTS[P.effect.v]; cnow.textContent="· "+e.n+"·"+e.vl
    Loops 4 bars: 2 bars of a kick/hat/chord progression, then 2 bars of silence so the wet tail
    rings out and Duck blooms. It's a representative global FX chain (filter / delay / chorus /
    reverb / mix / duck driven by the live params) — not the full granular engine. */
-const DEMO={ctx:null,nodes:null,timer:null,step:0,next:0,on:false};
+const DEMO={ctx:null,nodes:null,timer:null,stopTimer:null,step:0,next:0,on:false};
 const demoBtn=document.getElementById("demoBtn");
 const CHORDS=[[110,220,261.63,329.63],[87.31,174.61,220,261.63]]; /* Am, F (per playing bar) */
 function makeIR(ctx,sec,decay){ const n=(ctx.sampleRate*sec)|0,b=ctx.createBuffer(2,n,ctx.sampleRate);
@@ -821,7 +826,7 @@ function chord(ctx,dst,t,freqs,dur){ const g=ctx.createGain(); env(ctx,g,t,0.02,
 function duckHit(ctx,duck,t){ const amt=P.duck.v; if(amt<0.01)return;
   duck.gain.cancelScheduledValues(t); duck.gain.setValueAtTime(Math.max(0.12,1-amt*0.85),t); duck.gain.linearRampToValueAtTime(1.0,t+0.5); }
 function demoTick(){ const ctx=DEMO.ctx,N=DEMO.nodes; if(!ctx||!N)return;
-  const bpm=P.tempo.v||110, stepDur=60/bpm/4;
+  const bpm=100, stepDur=60/bpm/4;   /* demo groove is a fixed 100 BPM bed (ignores Tempo/Clock) */
   let mot=0; if(P.mot_target.v>0){ const beats=[32,16,8,4,2,1,0.5][P.mot_rate.v]||4, ps=beats*4; mot=Math.sin(2*Math.PI*((DEMO.step%ps)/ps))*P.mot_depth.v*0.5; }
   const fmod=P.mot_target.v===2?mot:0, spmod=P.mot_target.v===3?mot:0, mxmod=P.mot_target.v===4?mot:0;
   const fe=Math.max(0,Math.min(1,P.filter.v+fmod)), fc=Math.max(80,Math.min(18000,120*Math.pow(150,Math.pow(fe,1.6))));
@@ -833,16 +838,23 @@ function demoTick(){ const ctx=DEMO.ctx,N=DEMO.nodes; if(!ctx||!N)return;
   N.chdepth.gain.setTargetAtTime(P.mod_depth.v*0.008,now,0.05); N.chlfo.frequency.setTargetAtTime(0.2+P.mod_rate.v*8,now,0.05);
   N.dl.delayTime.setTargetAtTime(Math.max(0.03,Math.min(1.5,(60/bpm)/([0.25,0.5,1,2,4,8][P.subdiv.v]||1))),now,0.1);
   while(DEMO.next < now+0.25){ const step=DEMO.step%64, bar=(step/16)|0, t=DEMO.next;
-    if(bar<2){ if(step%4===0){kick(ctx,N.inBus,t); duckHit(ctx,N.duck,t);}
+    if(DEMO.on){                                  /* drums every bar; chord only bars 0-1 */
+      if(step%4===0){ kick(ctx,N.inBus,t); duckHit(ctx,N.duck,t); }
       if(step%4===2) hat(ctx,N.inBus,t);
-      if(step%16===0){ chord(ctx,N.inBus,t,CHORDS[((step/16)|0)%CHORDS.length], 60/bpm*4*0.95); duckHit(ctx,N.duck,t); } }
+      if(bar<2 && step%16===0){ chord(ctx,N.inBus,t,CHORDS[((step/16)|0)%CHORDS.length], 60/bpm*4*0.95); duckHit(ctx,N.duck,t); }
+    }
     DEMO.next+=stepDur; DEMO.step=(DEMO.step+1)%600000; }
 }
 function toggleDemo(){
-  if(DEMO.on){ DEMO.on=false; clearInterval(DEMO.timer); if(DEMO.ctx)DEMO.ctx.suspend(); demoBtn.classList.remove("on"); demoBtn.textContent="▶ Demo audio"; return; }
+  if(DEMO.on){ /* stop scheduling new notes but let the wet tail ring out, then suspend */
+    DEMO.on=false; demoBtn.classList.remove("on"); demoBtn.textContent="▶ Demo audio";
+    clearTimeout(DEMO.stopTimer);
+    DEMO.stopTimer=setTimeout(()=>{ if(!DEMO.on){ clearInterval(DEMO.timer); DEMO.timer=null; if(DEMO.ctx)DEMO.ctx.suspend(); } }, 5000);
+    return; }
   try{ if(!DEMO.ctx){ DEMO.ctx=new (window.AudioContext||window.webkitAudioContext)(); DEMO.nodes=buildDemo(DEMO.ctx); }
-    DEMO.ctx.resume(); DEMO.next=DEMO.ctx.currentTime+0.1; DEMO.step=0; DEMO.on=true;
-    DEMO.timer=setInterval(demoTick,60); demoBtn.classList.add("on"); demoBtn.textContent="⏸ Demo audio";
+    clearTimeout(DEMO.stopTimer); DEMO.ctx.resume();
+    if(!DEMO.timer){ DEMO.next=DEMO.ctx.currentTime+0.1; DEMO.step=0; DEMO.timer=setInterval(demoTick,60); }
+    DEMO.on=true; demoBtn.classList.add("on"); demoBtn.textContent="⏸ Demo audio";
   }catch(e){ demoBtn.textContent="(no audio)"; }
 }
 demoBtn.onclick=toggleDemo;
