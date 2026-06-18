@@ -117,7 +117,9 @@ clean and exports the entry symbol. Final analog *voicing* is tuned on-device.
 
 ## License & credits
 
-War Bells is released under the [MIT License](LICENSE) © Chris Farrell.
+War Bells is released under the [GNU Affero General Public License v3.0](LICENSE) © Chris Farrell.
+Because it's served over a network (the web UI), AGPL §13 applies — the in-app footer links back
+to this source.
 
 It links the Schwung host ABI: `src/host/audio_fx_api_v2.h` and `src/host/plugin_api_v1.h` are
 redistributed unmodified from [Schwung](https://github.com/charlesvestal/schwung) (MIT ©

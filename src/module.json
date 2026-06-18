@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "description": "Granular / glitch / delay / looper multi-FX: 11 effects x 4 variations, Hold sampler, reverb, resonant filter and a 60s looper.",
   "author": "seajaysec",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "dsp": "war_bells.so",
   "ui_chain": "ui_chain.js",
   "api_version": 2,

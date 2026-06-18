@@ -1,6 +1,8 @@
 # Third-Party Notices
 
-War Bells (MIT © Chris Farrell) includes / builds against the following third-party work.
+War Bells (AGPL-3.0-or-later © Chris Farrell) includes / builds against the following
+third-party work. These permissively-licensed files retain their own licenses; the rest of the
+project is AGPLv3.
 
 ## Schwung host ABI headers
 
