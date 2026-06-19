@@ -72,10 +72,10 @@ typedef struct wb {
     float spdl_l[WB_SPDL_LEN], spdl_r[WB_SPDL_LEN];
     int   spdl_w; float space_dtime, space_fb;
 
-    /* shimmer reverb: pitch-shifted feedback into the reverb tail */
+    /* shimmer reverb: ONE mono pitch-shifter fed back into the reverb tail (bounded) */
     int   shimmer;                    /* 0 Off 1 Oct+ 2 Oct- 3 5th */
-    wb_pshift_t shimL, shimR;
-    float shim_l, shim_r;
+    wb_pshift_t shimM;
+    float shim_m;
 
     /* runtime */
     int   grain_env;                  /* 0 Soft 1 Pluck 2 Swell 3 Gate */

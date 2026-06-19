@@ -65,6 +65,22 @@ static inline float wb_scale_snap(float ratio, int scale) {
     return powf(2.0f, (oct * 12.0f + best) / 12.0f);
 }
 
+/* shared Hann window LUT (power-of-two) — grain envelopes hit this per sample per grain,
+ * so a table lookup instead of cosf() is real CPU headroom at high grain density. */
+#define WB_HANN_N 2048
+static float WB_HANN[WB_HANN_N];
+static int   WB_HANN_READY = 0;
+static inline void wb_hann_init(void) {
+    if (WB_HANN_READY) return;
+    for (int i = 0; i < WB_HANN_N; i++)
+        WB_HANN[i] = 0.5f - 0.5f * cosf(2.0f * (float)M_PI * (float)i / (float)WB_HANN_N);
+    WB_HANN_READY = 1;
+}
+static inline float wb_hann(float ph01) {   /* ph01 in [0,1) */
+    int i = (int)(ph01 * WB_HANN_N) & (WB_HANN_N - 1);
+    return WB_HANN[i];
+}
+
 /* xorshift32 — cheap deterministic RNG for grain jitter/scatter */
 static inline uint32_t wb_rng_next(uint32_t *s) {
     uint32_t x = *s ? *s : 0x9e3779b9u;

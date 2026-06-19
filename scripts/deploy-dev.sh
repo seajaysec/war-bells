@@ -17,6 +17,7 @@ scp "$ROOT/dist/$MOD_ID/${MOD_ID}.so" "$ROOT/dist/$MOD_ID/module.json" \
     "$ROOT/dist/$MOD_ID/ui_chain.js" "$HOST:$DEST/"
 [ -f "$ROOT/dist/$MOD_ID/help.json" ] && scp "$ROOT/dist/$MOD_ID/help.json" "$HOST:$DEST/"
 [ -f "$ROOT/dist/$MOD_ID/web_ui.html" ] && scp "$ROOT/dist/$MOD_ID/web_ui.html" "$HOST:$DEST/"
+[ -f "$ROOT/dist/$MOD_ID/wbw.js" ] && scp "$ROOT/dist/$MOD_ID/wbw.js" "$HOST:$DEST/"
 echo "Deployed to $HOST:$DEST"
 
 RESTART_HOOK="/data/UserData/schwung/restart-move.sh"

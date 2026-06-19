@@ -56,7 +56,7 @@ static void *v2_create(const char *module_dir, const char *config_json) {
     wb_svf_reset(&w->filt_l); wb_svf_reset(&w->filt_r);
     wb_looper_init(&w->looper, w->lp_bl, w->lp_br, w->lp_ol, w->lp_or, lcap);
     wb_transient_init(&w->trans);
-    wb_pshift_init(&w->shimL); wb_pshift_init(&w->shimR); w->shim_l = w->shim_r = 0.0f;
+    wb_pshift_init(&w->shimM); w->shim_m = 0.0f;
     w->mot_rng = 0x2BAD51E5u; w->mot_phase = 0.0; w->mot_newrand = 1;
     w->evo_rng = 0x9E3779B1u; w->evo_acc = 0.0;
     w->bypass_lag = 0.005f;
@@ -184,16 +184,19 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
             float sdL, sdR; wb_space_delay(w, sigL, sigR, &sdL, &sdR);
             float rvL, rvR;
             if (w->shimmer) {
-                /* shimmer: feed a pitch-shifted copy of the reverb tail back into its input */
+                /* shimmer: ONE mono pitch-shifter on the reverb tail, fed back with a hard-bounded
+                 * gain (denormal-flushed in wb_pshift_process). Mono + LUT window keeps the per-sample
+                 * cost low so it stays solid at high grain load. */
                 static const float SHIM_RATIO[4] = { 1.0f, 2.0f, 0.5f, 1.5f }; /* -,oct+,oct-,5th */
                 float rt = SHIM_RATIO[w->shimmer & 3];
-                wb_reverb_process(&w->reverb, sigL + sdL*0.5f + w->shim_l*0.55f,
-                                              sigR + sdR*0.5f + w->shim_r*0.55f, &rvL, &rvR);
-                w->shim_l = wb_softclip(wb_pshift_process(&w->shimL, rvL, rt));
-                w->shim_r = wb_softclip(wb_pshift_process(&w->shimR, rvR, rt));
+                float fb = w->shim_m * 0.45f;
+                wb_reverb_process(&w->reverb, sigL + sdL*0.5f + fb, sigR + sdR*0.5f + fb, &rvL, &rvR);
+                float sh = wb_pshift_process(&w->shimM, 0.5f*(rvL+rvR), rt);
+                if (sh > 1.5f) sh = 1.5f; else if (sh < -1.5f) sh = -1.5f;   /* hard clamp the feedback */
+                w->shim_m = sh;
             } else {
                 wb_reverb_process(&w->reverb, sigL + sdL*0.5f, sigR + sdR*0.5f, &rvL, &rvR);
-                w->shim_l = 0.0f; w->shim_r = 0.0f;
+                w->shim_m = 0.0f;
             }
             float spL = sdL + rvL, spR = sdR + rvR;
             sigL = wb_lerpf(sigL, spL, spaceEff);

@@ -48,6 +48,7 @@ typedef struct {
 } wb_voice_t;
 
 static inline void wb_voice_init(wb_voice_t *v, uint32_t seed) {
+    wb_hann_init();
     for (int i = 0; i < WB_GRAINS_PER_VOICE; i++) v->g[i].active = 0;
     v->sched = 0.0; v->ph = 0.0; v->glide_ph = 0.0; v->sweep_ph = 0.0;
     v->window = WB_SR * 0.5f;
@@ -144,7 +145,7 @@ static inline void wb_voice_process(wb_voice_t *v, const wb_ring_t *rb,
             case 2: win = w; break;                  /* Swell: ramp up (reverse feel) */
             case 3: { float e = 0.05f;               /* Gate: flat with short edge fades */
                       win = (w < e) ? (w / e) : (w > 1.0f - e ? (1.0f - w) / e : 1.0f); break; }
-            default: win = 0.5f - 0.5f * cosf((float)(2.0 * M_PI * w)); break; /* Soft (Hann) */
+            default: win = wb_hann(w); break;                                  /* Soft (Hann, LUT) */
         }
         float sl, sr;
         wb_ring_read(rb, g->basepos + g->age * g->rate, &sl, &sr);

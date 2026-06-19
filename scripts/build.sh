@@ -55,6 +55,7 @@ cp src/module.json "$OUT/"
 cp ui_chain.js "$OUT/"
 [ -f help.json ] && cp help.json "$OUT/"
 [ -f web_ui.html ] && cp web_ui.html "$OUT/"
+[ -f wbw.js ] && cp wbw.js "$OUT/"
 
 tar -C "$ROOT/dist" -czf "$ROOT/dist/${MOD_ID}-module.tar.gz" "$MOD_ID"
 ls -lh "$OUT/${MOD_ID}.so" "$ROOT/dist/${MOD_ID}-module.tar.gz"

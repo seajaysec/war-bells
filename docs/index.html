@@ -385,6 +385,7 @@
 </footer>
 </div>
 
+<script src="wbw.js"></script>   <!-- the real War Bells DSP, compiled to WASM (createWarBells) -->
 <script>
 "use strict";
 /* =========================================================================
@@ -551,9 +552,12 @@ function ingest(key,raw){const p=P[key];if(p===undefined)return;
    else{const idx=p.o.indexOf(raw);if(idx>=0)p.v=idx;}}
 }
 function pushToDevice(key){
- if(Bridge.mode!=="live"||Bridge.applying||Bridge.slot===null)return;
- const msg={type:"set_param",slot:Bridge.slot,key:Bridge.comp+":"+key,value:serialize(key)};
- try{Bridge.ws.send(JSON.stringify(msg));}catch(e){}
+ if(Bridge.applying)return;
+ if(Bridge.mode==="live"&&Bridge.slot!==null){
+   try{Bridge.ws.send(JSON.stringify({type:"set_param",slot:Bridge.slot,key:Bridge.comp+":"+key,value:serialize(key)}));}catch(e){}
+   return;
+ }
+ if(typeof DEMO!=="undefined"&&DEMO.m){ try{DEMO.m.ccall('wbw_set',null,['string','string'],[key,serialize(key)]);}catch(e){} }  /* drive the WASM demo engine */
 }
 function defaultHost(){
  const saved=localStorage.getItem("wb_host"); if(saved)return saved;
@@ -830,71 +834,63 @@ window.addEventListener("scroll",()=>{ if(manualCollapse!==null)return; const y=
   else if(y<70 && synthbar.classList.contains("collapsed")) setCollapsed(false); },{passive:true});
 subs.add(()=>{ const e=EFFECTS[P.effect.v]; cnow.textContent="· "+e.n+"·"+e.vl[P.variation.v]; });
 
-/* ---------- demo audio (Web Audio, browser-only — gives War Bells something to chew on) ----------
-   Loops 4 bars: 2 bars of a kick/hat/chord progression, then 2 bars of silence so the wet tail
-   rings out and Duck blooms. It's a representative global FX chain (filter / delay / chorus /
-   reverb / mix / duck driven by the live params) — not the full granular engine. */
-const DEMO={ctx:null,nodes:null,timer:null,stopTimer:null,step:0,next:0,on:false};
+/* ---------- demo audio: the REAL War Bells DSP, compiled to WASM ----------
+   A fixed-100-BPM source (kick + hats every bar; a 2-bar chord that then rests 2 bars) is
+   synthesized in JS and fed THROUGH the actual engine via wbw_render — so the demo is the real
+   effect (granular/glitch/delay/reverb), and Duck / tails behave for real. The same params drive
+   it (wbw_set). Turning it off stops the source but lets the wet tail ring, then suspends. */
 const demoBtn=document.getElementById("demoBtn");
-const CHORDS=[[110,220,261.63,329.63],[87.31,174.61,220,261.63]]; /* Am, F (per playing bar) */
-function makeIR(ctx,sec,decay){ const n=(ctx.sampleRate*sec)|0,b=ctx.createBuffer(2,n,ctx.sampleRate);
-  for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay);}return b; }
-function buildDemo(ctx){
-  const master=ctx.createGain(); master.gain.value=0.85; master.connect(ctx.destination);
-  const inBus=ctx.createGain(), dry=ctx.createGain(), wet=ctx.createGain(), duck=ctx.createGain();
-  const filt=ctx.createBiquadFilter(); filt.type="lowpass"; filt.frequency.value=12000;
-  const dl=ctx.createDelay(2.0), fb=ctx.createGain(); fb.gain.value=0.4; dl.connect(fb); fb.connect(dl);
-  const ch=ctx.createDelay(0.06), chlfo=ctx.createOscillator(), chdepth=ctx.createGain();
-  chlfo.frequency.value=0.8; chdepth.gain.value=0; chlfo.connect(chdepth); chdepth.connect(ch.delayTime); chlfo.start();
-  const rev=ctx.createConvolver(); rev.buffer=makeIR(ctx,2.4,2.4); const revSend=ctx.createGain(); revSend.gain.value=0.4;
-  inBus.connect(dry); dry.connect(master);
-  inBus.connect(filt); filt.connect(dl); dl.connect(ch);
-  ch.connect(wet); wet.connect(duck);
-  ch.connect(revSend); revSend.connect(rev); rev.connect(duck);
-  duck.connect(master);
-  return {master,inBus,dry,wet,duck,filt,dl,fb,ch,chlfo,chdepth,rev,revSend};
+const CHORDS=[[110,220,261.63,329.63],[87.31,174.61,220,261.63]]; /* Am, F */
+const DEMO={ctx:null,node:null,m:null,ptr:null,on:false,t:0,src:[],stopTimer:null,FR:128};
+async function demoEnsure(){
+  if(DEMO.m) return true;
+  if(typeof createWarBells!=="function") return false;
+  DEMO.m=await createWarBells();
+  DEMO.m.ccall('wbw_init',null,[],[]);
+  for(const k in P){ try{DEMO.m.ccall('wbw_set',null,['string','string'],[k,serialize(k)]); }catch(e){} }  /* seed current state */
+  return true;
 }
-function env(ctx,g,t,a,d,peak){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(0.0008,t+a+d); }
-function kick(ctx,dst,t){ const o=ctx.createOscillator(),g=ctx.createGain(); o.frequency.setValueAtTime(130,t); o.frequency.exponentialRampToValueAtTime(48,t+0.12);
-  env(ctx,g,t,0.002,0.16,0.9); o.connect(g); g.connect(dst); o.start(t); o.stop(t+0.2); }
-function hat(ctx,dst,t){ const n=ctx.createBufferSource(),b=ctx.createBuffer(1,1024,ctx.sampleRate),d=b.getChannelData(0);
-  for(let i=0;i<1024;i++)d[i]=Math.random()*2-1; n.buffer=b; const hp=ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=7000;
-  const g=ctx.createGain(); env(ctx,g,t,0.001,0.04,0.25); n.connect(hp); hp.connect(g); g.connect(dst); n.start(t); n.stop(t+0.05); }
-function chord(ctx,dst,t,freqs,dur){ const g=ctx.createGain(); env(ctx,g,t,0.02,dur,0.22); g.connect(dst);
-  freqs.forEach(f=>{const o=ctx.createOscillator(); o.type="triangle"; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+dur+0.1);}); }
-function duckHit(ctx,duck,t){ const amt=P.duck.v; if(amt<0.01)return;
-  duck.gain.cancelScheduledValues(t); duck.gain.setValueAtTime(Math.max(0.12,1-amt*0.85),t); duck.gain.linearRampToValueAtTime(1.0,t+0.5); }
-function demoTick(){ const ctx=DEMO.ctx,N=DEMO.nodes; if(!ctx||!N)return;
-  const bpm=100, stepDur=60/bpm/4;   /* demo groove is a fixed 100 BPM bed (ignores Tempo/Clock) */
-  let mot=0; if(P.mot_target.v>0){ const beats=[32,16,8,4,2,1,0.5][P.mot_rate.v]||4, ps=beats*4; mot=Math.sin(2*Math.PI*((DEMO.step%ps)/ps))*P.mot_depth.v*0.5; }
-  const fmod=P.mot_target.v===2?mot:0, spmod=P.mot_target.v===3?mot:0, mxmod=P.mot_target.v===4?mot:0;
-  const fe=Math.max(0,Math.min(1,P.filter.v+fmod)), fc=Math.max(80,Math.min(18000,120*Math.pow(150,Math.pow(fe,1.6))));
-  const now=ctx.currentTime, mix=Math.max(0,Math.min(1,P.mix.v+mxmod));
-  N.filt.frequency.setTargetAtTime(fc,now,0.05);
-  N.fb.gain.setTargetAtTime(Math.min(0.88,P.repeats.v*0.85),now,0.05);
-  N.wet.gain.setTargetAtTime(mix,now,0.05); N.dry.gain.setTargetAtTime(1-mix*0.85,now,0.05);
-  N.revSend.gain.setTargetAtTime(Math.max(0,Math.min(1,P.space.v+spmod))*0.7,now,0.05);
-  N.chdepth.gain.setTargetAtTime(P.mod_depth.v*0.008,now,0.05); N.chlfo.frequency.setTargetAtTime(0.2+P.mod_rate.v*8,now,0.05);
-  N.dl.delayTime.setTargetAtTime(Math.max(0.03,Math.min(1.5,(60/bpm)/([0.25,0.5,1,2,4,8][P.subdiv.v]||1))),now,0.1);
-  while(DEMO.next < now+0.25){ const step=DEMO.step%64, bar=(step/16)|0, t=DEMO.next;
-    if(DEMO.on){                                  /* drums every bar; chord only bars 0-1 */
-      if(step%4===0){ kick(ctx,N.inBus,t); duckHit(ctx,N.duck,t); }
-      if(step%4===2) hat(ctx,N.inBus,t);
-      if(bar<2 && step%16===0){ chord(ctx,N.inBus,t,CHORDS[((step/16)|0)%CHORDS.length], 60/bpm*4*0.95); duckHit(ctx,N.duck,t); }
+function demoEngineSet(key){ if(DEMO.m){ try{DEMO.m.ccall('wbw_set',null,['string','string'],[key,serialize(key)]); }catch(e){} } }
+function genSource(heap,FR){                       /* synth FR stereo int16 source frames */
+  const SR=44100, stepLen=(SR*60/100/4)|0;         /* 16th note @ a fixed 100 BPM */
+  for(let i=0;i<FR;i++){
+    if(DEMO.on && DEMO.t % stepLen === 0){
+      const step=((DEMO.t/stepLen)|0)%64, bar=(step/16)|0;
+      if(step%4===0) DEMO.src.push({t:'k',ph:0,age:0,dur:SR*0.16});         /* kick every beat */
+      if(step%4===2) DEMO.src.push({t:'h',age:0,dur:SR*0.045});              /* hat off-beat */
+      if(bar<2 && step%16===0) CHORDS[((step/16)|0)%CHORDS.length].forEach(f=>
+        DEMO.src.push({t:'c',ph:0,age:0,dur:SR*60/100*4*0.9,freq:f}));       /* chord bars 0-1 */
     }
-    DEMO.next+=stepDur; DEMO.step=(DEMO.step+1)%600000; }
+    let s=0;
+    for(let j=DEMO.src.length-1;j>=0;j--){ const v=DEMO.src[j], e=Math.max(0,1-v.age/v.dur);
+      if(v.t==='k'){ const f=45+85*Math.exp(-v.age/SR*14); s+=Math.sin(v.ph)*e*0.8; v.ph+=2*Math.PI*f/SR; }
+      else if(v.t==='h'){ s+=(Math.random()*2-1)*e*e*0.25; }
+      else { s+=Math.sin(v.ph)*e*0.12; v.ph+=2*Math.PI*v.freq/SR; }
+      v.age++; if(v.age>=v.dur) DEMO.src.splice(j,1);
+    }
+    s = s<-1?-1 : s>1?1 : s; const iv=(s*32767)|0; heap[i*2]=iv; heap[i*2+1]=iv; DEMO.t++;
+  }
 }
-function toggleDemo(){
-  if(DEMO.on){ /* stop scheduling new notes but let the wet tail ring out, then suspend */
-    DEMO.on=false; demoBtn.classList.remove("on"); demoBtn.textContent="▶ Demo audio";
-    clearTimeout(DEMO.stopTimer);
-    DEMO.stopTimer=setTimeout(()=>{ if(!DEMO.on){ clearInterval(DEMO.timer); DEMO.timer=null; if(DEMO.ctx)DEMO.ctx.suspend(); } }, 5000);
-    return; }
-  try{ if(!DEMO.ctx){ DEMO.ctx=new (window.AudioContext||window.webkitAudioContext)(); DEMO.nodes=buildDemo(DEMO.ctx); }
-    clearTimeout(DEMO.stopTimer); DEMO.ctx.resume();
-    if(!DEMO.timer){ DEMO.next=DEMO.ctx.currentTime+0.1; DEMO.step=0; DEMO.timer=setInterval(demoTick,60); }
-    DEMO.on=true; demoBtn.classList.add("on"); demoBtn.textContent="⏸ Demo audio";
-  }catch(e){ demoBtn.textContent="(no audio)"; }
+async function toggleDemo(){
+  if(DEMO.on){ DEMO.on=false; demoBtn.classList.remove("on"); demoBtn.textContent="▶ Demo audio";
+    clearTimeout(DEMO.stopTimer); DEMO.stopTimer=setTimeout(()=>{ if(!DEMO.on&&DEMO.ctx)DEMO.ctx.suspend(); },6000); return; }
+  demoBtn.textContent="…loading";
+  if(!(await demoEnsure())){ demoBtn.textContent="(no engine)"; return; }
+  if(!DEMO.ctx){
+    DEMO.ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:44100});
+    DEMO.ptr=DEMO.m._malloc(DEMO.FR*2*2);          /* FR stereo int16 frames */
+    DEMO.node=DEMO.ctx.createScriptProcessor(512,0,2);
+    DEMO.node.onaudioprocess=(e)=>{ const L=e.outputBuffer.getChannelData(0),R=e.outputBuffer.getChannelData(1); let o=0;
+      for(let b=0;b<512/DEMO.FR;b++){
+        let heap=new Int16Array(DEMO.m.HEAP16.buffer, DEMO.ptr, DEMO.FR*2);  /* re-view (memory may grow) */
+        genSource(heap,DEMO.FR); DEMO.m._wbw_render(DEMO.ptr,DEMO.FR);
+        heap=new Int16Array(DEMO.m.HEAP16.buffer, DEMO.ptr, DEMO.FR*2);
+        for(let i=0;i<DEMO.FR;i++){ L[o]=heap[i*2]/32768; R[o]=heap[i*2+1]/32768; o++; }
+      } };
+    DEMO.node.connect(DEMO.ctx.destination);
+  }
+  clearTimeout(DEMO.stopTimer); DEMO.ctx.resume(); DEMO.on=true;
+  demoBtn.classList.add("on"); demoBtn.textContent="⏸ Demo audio";
 }
 demoBtn.onclick=toggleDemo;
 
