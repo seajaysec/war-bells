@@ -43,7 +43,7 @@ static inline float wb_tape_limit(wb_tlim_t *t, float x) {
     t->env += (a - t->env) * (a > t->env ? 0.05f : 0.00015f);   /* fast attack ~0.5ms, slow release */
     /* clean gain-riding holds the level near the threshold (no waveshaping = no added harmonics) */
     float g = 1.0f;
-    if (t->env > 0.55f) g = (0.55f + (t->env - 0.55f) * 0.1f) / t->env;   /* firm hold so sustained washes settle, not climb to the rails */
+    if (t->env > 0.55f) g = (0.55f + (t->env - 0.55f) * 0.18f) / t->env;   /* hold sustained ~0.8 (loud) — the hard cap below still stops any climb to the rails */
     float y = x * g;
     /* WARMTH: roll highs off by how hard you're PUSHING (envelope over threshold), not just by the
      * gain reduction — so even when the gain ride holds the level, hot swells audibly soften/darken

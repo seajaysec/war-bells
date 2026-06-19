@@ -261,6 +261,10 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         int hit = wb_looper_process(&w->looper, sigL, sigR, recL, recR, &outL, &outR);
         if (hit) wb_looper_close(&w->looper, w->looper.cap);
 
+        /* master makeup on the PROCESSED signal (restores loudness lost to the staging headroom).
+         * Applied BEFORE the bypass crossfade so true bypass stays unity (not 1.35x dry). */
+        outL *= 1.35f; outR *= 1.35f;
+
         /* bypass output: Trails = effect tail (already decaying via faded feed) + clean dry rising;
          * hard = crossfade straight to dry (tail cut). */
         if (w->bypass_trails) { outL = outL + inL * bc; outR = outR + inR * bc; }
