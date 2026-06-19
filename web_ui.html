@@ -650,7 +650,14 @@ function selectInstance(i){ const x=Bridge.instances[i]; if(!x)return; Bridge.us
 if(instSel) instSel.onchange=()=>{ const v=instSel.value; if(v==="demo")selectDemo(); else selectInstance(+v.slice(1)); };
 function connectLive(host){
  host=(host||defaultHost()).trim();
- if(location.protocol==="https:"){setStatus("demo","interactive demo — open this page from your Move (http) to control hardware");return;}
+ if(location.protocol==="https:"){
+   /* https can't reach a Move's ws:// (mixed content). Hand off to the copy SERVED BY the Move (http),
+      where the live connection works — same app, just the right origin. */
+   localStorage.setItem("wb_host",host);
+   const url="http://"+host+"/api/remote-ui/module-assets/war_bells/web_ui.html";
+   setStatus("demo","opening War Bells on "+host+" …");
+   location.href=url; return;
+ }
  Bridge.host=host; localStorage.setItem("wb_host",host); Bridge.instances=[]; Bridge.slotState={}; Bridge.userPicked=false;
  try{if(Bridge.ws)Bridge.ws.close();}catch(e){}
  setStatus("demo","scanning "+host+" for War Bells…");
@@ -956,14 +963,14 @@ demoBtn.onclick=toggleDemo;
 
 /* ---------- boot ---------- */
 renderAll();
-(function setupMode(){   /* https = demo+manual only; http (served from the Move) = controller */
- const controllable = location.protocol!=="https:";
- hostInput.style.display = controllable?"":"none";
- document.getElementById("connectBtn").style.display = controllable?"":"none";
- refreshTargets();   /* show the Demo↔slot Target dropdown in controller contexts */
+(function setupMode(){   /* http (served from the Move) = live controller; https (Pages) = demo + hand-off to the Move */
+ refreshTargets();   /* Demo↔slot Target dropdown shows only in http/controller contexts */
+ /* On Pages, https can't open ws:// to a Move (browser mixed-content block), so Connect instead OPENS the
+    copy served from the Move (http), where control works. Relabel so that's clear. */
+ document.getElementById("connectBtn").textContent = (location.protocol==="https:") ? "Open on Move" : "Connect";
 })();
 if(!tryEmbedded()){
- if(location.protocol==="https:")setStatus("demo","interactive demo & manual — open from your Move to control hardware");
+ if(location.protocol==="https:")setStatus("demo","demo & manual · to control your Move, enter its address → Open on Move");
  else connectLive(defaultHost());
 }
 
