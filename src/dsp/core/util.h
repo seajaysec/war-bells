@@ -18,6 +18,12 @@
 #include <stdint.h>
 #include <math.h>
 
+/* M_PI is not ISO C — glibc hides it under -std=c11 (the test build's flag), though
+ * Apple's libm exposes it anyway. Define it portably so the engine builds on any libc. */
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #define WB_SR        44100.0f
 #define WB_FRAMES    128
 
