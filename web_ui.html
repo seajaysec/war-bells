@@ -439,28 +439,30 @@ const CATS={Loops:{c:"var(--loops)",h:168,d:"loops at various speeds"},Grains:{c
 const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large & lush"],["Vast","endless wash"]];
 /* one tasteful example per effect + the value-add showcases — mirrors the DSP apply_preset.
    B=baseline neutral so each preset is self-contained (matches the engine's reset-then-set). */
-const PB={filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,grain_env:0,reverse:0,reverb_mode:0,effect_vol:.85,
-          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0,bypass_trails:0,sustain:0,warp:.5};
+/* Presets are defined ONCE, in the C engine (apply_preset in params.c) — the single source of truth.
+   This list is names + descriptions ONLY; the actual values come from the WASM at runtime (applyPreset
+   sets the `preset` param, which runs the real C code, then reads every value back). That's why the demo
+   can never drift from the device. The order MUST match PRESET_OPTS in params.c. */
 const PRESETS=[
- {n:"Init",d:"clean octave stack",s:{...PB,effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15}},
- {n:"Arp",d:"plucky glitch arps",s:{...PB,effect:0,variation:1,activity:.55,repeats:.4,shape:.45,mix:.75,space:.15,grain_env:1}},
- {n:"Stutr",d:"filter-swept stutters",s:{...PB,effect:1,variation:2,activity:.6,repeats:.55,shape:.5,mix:.85,space:.2,filter:.7,filter_res:.4}},
- {n:"Chop",d:"pitch chops, dark",s:{...PB,effect:2,variation:1,activity:.65,repeats:.45,shape:.45,mix:.8,space:.2,reverb_mode:1,grain_env:1}},
- {n:"Glass",d:"octave glide, major",s:{...PB,effect:3,variation:2,activity:.8,repeats:.4,shape:.6,mix:1,space:.4,reverb_mode:2,pitch_scale:1}},
- {n:"Seq",d:"swept rhythms",s:{...PB,effect:4,variation:2,activity:.7,repeats:.45,shape:.4,mix:.85,space:.3,filter:.8,filter_res:.3,reverb_mode:1}},
- {n:"Stack",d:"full octave stack",s:{...PB,effect:5,variation:3,activity:.7,repeats:.4,shape:.5,mix:.9,space:.35,reverb_mode:2,pitch_scale:4}},
- {n:"Cloud",d:"grain wash + shimmer",s:{...PB,effect:6,variation:1,activity:.65,repeats:.6,shape:.5,mix:.9,space:.6,reverb_mode:2,shimmer:1}},
- {n:"Drone",d:"bandpass + motion",s:{...PB,effect:7,variation:2,activity:.2,repeats:.85,shape:.5,mix:.7,space:.5,reverb_mode:3,mot_target:2,mot_rate:1,mot_depth:.5}},
- {n:"Birds",d:"reverse cascades",s:{...PB,effect:8,variation:3,activity:.75,repeats:.4,shape:.4,mix:.8,space:.25,reverse:1,grain_env:1}},
- {n:"Taps",d:"swung multitap",s:{...PB,effect:9,variation:1,activity:.5,repeats:.65,shape:.4,mix:.7,space:.2,reverb_mode:1}},
- {n:"Warp",d:"pitched taps, major",s:{...PB,effect:10,variation:2,activity:.55,repeats:.6,shape:.5,mix:.85,space:.4,reverb_mode:2,pitch_scale:1}},
- {n:"Sheen",d:"shimmer reverb",s:{...PB,effect:5,variation:0,activity:.5,repeats:.5,shape:.55,mix:1,space:.75,reverb_mode:2,shimmer:1,grain_env:2}},
- {n:"Motn",d:"LFO filter sweep",s:{...PB,effect:6,variation:0,activity:.6,repeats:.55,shape:.5,mix:.85,space:.55,reverb_mode:2,mot_target:2,mot_rate:3,mot_depth:.7}},
- {n:"Evolv",d:"self-evolving",s:{...PB,effect:8,variation:2,activity:.65,repeats:.55,shape:.45,mix:.85,space:.45,reverb_mode:2,evolve:.6,evo_range:1}},
- {n:"Scale",d:"scale-locked stack",s:{...PB,effect:5,variation:3,activity:.65,repeats:.45,shape:.5,mix:.9,space:.4,reverb_mode:2,pitch_scale:1}},
- {n:"Bloom",d:"wet swells in gaps",s:{...PB,effect:6,variation:0,activity:.5,repeats:.55,shape:.5,mix:.9,space:.6,reverb_mode:2,duck:.65}},
- {n:"Trails",d:"tail rings on bypass",s:{...PB,effect:5,variation:0,activity:.45,repeats:.85,shape:.55,mix:.85,space:.8,reverb_mode:3,shimmer:1,sustain:.5,bypass_trails:1}},
- {n:"Spiral",d:"builds + re-pitches",s:{...PB,effect:5,variation:0,activity:.4,repeats:.7,shape:.55,mix:.85,space:.75,reverb_mode:3,sustain:.7,mot_target:6,mot_rate:2,mot_depth:.35}},
+ {n:"Init",d:"clean octave stack"},
+ {n:"Arp",d:"plucky glitch arps"},
+ {n:"Stutr",d:"filter-swept stutters"},
+ {n:"Chop",d:"pitch chops, dark"},
+ {n:"Glass",d:"octave glide, major"},
+ {n:"Seq",d:"swept rhythms"},
+ {n:"Stack",d:"full octave stack"},
+ {n:"Cloud",d:"grain wash + shimmer"},
+ {n:"Drone",d:"bandpass + motion"},
+ {n:"Birds",d:"reverse cascades"},
+ {n:"Taps",d:"swung multitap"},
+ {n:"Warp",d:"pitched taps, major"},
+ {n:"Sheen",d:"shimmer reverb"},
+ {n:"Motn",d:"LFO filter sweep"},
+ {n:"Evolv",d:"self-evolving"},
+ {n:"Scale",d:"scale-locked stack"},
+ {n:"Bloom",d:"wet swells in gaps"},
+ {n:"Trails",d:"tail rings on bypass"},
+ {n:"Spiral",d:"builds + re-pitches"},
 ];
 
 /* ---------- param model (mirrors chain_params) ---------- */
@@ -556,7 +558,28 @@ function frac(key){const p=P[key];
  if(p.t==="bpm"||p.t==="x"||p.t==="int")return (p.v-p.min)/(p.max-p.min);
  if(p.t==="var")return p.v/3;
  return p.o.length>1?p.v/(p.o.length-1):0;}
-function applyPreset(i){const s=PRESETS[i].s;for(const k in s){if(P[k]){P[k].v=s[k];pushToDevice(k);}}notify("*");}
+/* Single source of truth: run the REAL C apply_preset (in the WASM), then read every param back so the
+   UI + demo reflect exactly what the device does. Falls back to just selecting the preset until the engine
+   has loaded (it canonicalizes on load via the startup call below). */
+function presetReadback(){
+ if(!DEMO.m) return false;
+ let buf=0;
+ try{ buf=DEMO.m._malloc(64);
+  /* read a C string from the WASM heap (this build exposes HEAP16, not UTF8ToString/HEAPU8); re-view each
+     call since the heap can grow */
+  const rd=(k)=>{ const n=DEMO.m.ccall('wbw_get','number',['string','number','number'],[k,buf,64]); if(n<=0)return null;
+    const u8=new Uint8Array(DEMO.m.HEAP16.buffer); let s=''; for(let i=buf; u8[i]; i++) s+=String.fromCharCode(u8[i]); return s; };
+  const eff=rd('effect'); if(eff!==null) ingest('effect',eff);   /* effect first: variation labels depend on it */
+  for(const k in P){ if(k==='effect'||k==='preset')continue; const v=rd(k); if(v!==null) ingest(k,v); }
+  return true;
+ }catch(e){ return false; } finally{ if(buf) DEMO.m._free(buf); }
+}
+function applyPreset(i){
+ P.preset.v=i;
+ if(DEMO.m){ try{DEMO.m.ccall('wbw_set',null,['string','string'],['preset',PRESETS[i].n]);}catch(e){} presetReadback(); }
+ if(Bridge.mode==="live") pushToDevice('preset');   /* hardware runs its own apply_preset */
+ notify("*");
+}
 
 /* =====================================================================
    LIVE BRIDGE — schwung-manager /ws/remote-ui (or embedded schwungRemote)
@@ -939,6 +962,11 @@ if(!tryEmbedded()){
  if(location.protocol==="https:")setStatus("demo","interactive demo & manual — open from your Move to control hardware");
  else connectLive(defaultHost());
 }
+
+/* Preset oracle: load the real engine at startup (no audio) and canonicalize the selected preset straight
+   from the C source, so the manual/demo always shows exact device values and can never drift. (Demo/manual
+   only — in live mode the hardware is the source of truth and the bridge supplies state.) */
+demoEnsure().then(ok=>{ if(ok && Bridge.mode!=="live") applyPreset(P.preset.v); });
 </script>
 </body>
 </html>
