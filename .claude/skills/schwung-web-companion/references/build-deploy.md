@@ -42,6 +42,17 @@ the device.
   `html{overflow-x:clip}` (clip, not hidden — keeps `position:sticky` working). Find the culprit by scanning
   for elements whose `getBoundingClientRect().right > clientWidth`.
 
+## Touch vs mouse controls
+- **Vertical-drag "knobs" are awful on touch** (they fight page scroll, tiny targets). Auto-detect the input
+  and render accordingly: `const COARSE = matchMedia("(pointer:coarse)").matches` → horizontal `<input
+  type=range>` sliders on touch, keep the knob aesthetic on mouse. Add `|| location.search.includes("touch")`
+  so you can force-test the touch path on desktop.
+- **Don't fully re-render a control row on every value change** — it destroys the `<input>` you're dragging
+  mid-gesture (drag breaks). Split **build** (once, per page) from **sync** (update values on change, skipping
+  `document.activeElement`). The same applies to "live" panels: render the shell once, sync values on update.
+- **Behaviors can be input-aware too:** auto-collapse/auto-hide on scroll is nice with a mouse but jumpy on
+  touch — gate it behind `!COARSE` and always keep a manual toggle.
+
 ## Install / discoverability
 Add an "Install" section to the manual: catalog/Module Store path ("search the module, once listed") + manual
 install (download the release tarball from GitHub releases, `scp` + `tar` to `…/schwung/modules/audio_fx/`,
