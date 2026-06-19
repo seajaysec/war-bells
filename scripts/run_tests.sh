@@ -5,7 +5,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 CC="${CC:-cc}"
 INC="-Isrc -Isrc/dsp"
-OPT="-O2 -g -std=c11 -Wall -Wextra -Wno-unused-parameter"
+# -std=c11 puts glibc in strict-ISO mode and hides X/Open symbols (e.g. M_PI used by
+# the tests and audit probes); _XOPEN_SOURCE=600 re-exposes them. No-op on Apple libm.
+OPT="-O2 -g -std=c11 -D_XOPEN_SOURCE=600 -Wall -Wextra -Wno-unused-parameter"
 OBJ="$(mktemp -d)"
 DSP="src/dsp/war_bells.c src/dsp/effects.c src/dsp/params.c"
 
