@@ -24,6 +24,7 @@ typedef struct {
     wb_ap_t   al[WB_RV_APS],   ar[WB_RV_APS];
     float room_size, damping, width;
     float feedback, damp1, damp2;
+    float dcx, dcy;           /* input DC blocker state (combs at ~0.94 fb amplify DC ~16x) */
     int   eco;                /* Eco: run 4 combs instead of 8 (CPU mode, thinner tail) */
 } wb_reverb_t;
 
@@ -70,6 +71,9 @@ static inline float wb_ap_run(wb_ap_t *a, float in) {
 static inline void wb_reverb_process(wb_reverb_t *v, float inL, float inR,
                                      float *outL, float *outR) {
     float input = (inL + inR) * 0.5f;
+    /* DC blocker on the input — the high-feedback combs (~0.94 in Hall/Vast) amplify any DC ~16x, which
+     * otherwise rides up over seconds into an offset (the harness flagged 0.155). One-pole HPF ~5 Hz. */
+    float dci = input - v->dcx + 0.9995f * v->dcy; v->dcx = input; v->dcy = dci; input = dci;
     float oL = 0.0f, oR = 0.0f;
     /* Eco halves the comb bank (the memory-bound bulk of the reverb cost) — thinner tail, ~half
      * the reverb CPU. Default (eco=0) runs the full 8 combs = unchanged sound. */

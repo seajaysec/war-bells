@@ -126,6 +126,7 @@ static inline void wb_space_delay(wb_t *w, float inL, float inR, float *outL, fl
 
 static void v2_process(void *inst, int16_t *audio, int frames) {
     wb_t *w = (wb_t*)inst; if (!w) return;
+    wb_flush_denormals();   /* denormal stalls in the reverb/delay tails = CPU spikes; flush on the audio thread */
 
     /* tempo: 0 Free (internal + organic drift), 1 Sync (host clock), 2 Manual (fixed) */
     float base = w->tempo_manual;
@@ -238,8 +239,7 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
                 float fb = w->shim_m * 0.18f;
                 wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f + fb, (sigR + sdR*0.5f)*0.5f + fb, &rvL, &rvR);
                 float sh = wb_pshift_process(&w->shimM, 0.5f*(rvL+rvR), rt);
-                if (sh > 1.5f) sh = 1.5f; else if (sh < -1.5f) sh = -1.5f;   /* hard clamp the feedback */
-                w->shim_m = sh;
+                w->shim_m = wb_softclip(sh);   /* soft-saturate the feedback (no hard-clamp fold = no added aliasing) */
             } else {
                 wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f, (sigR + sdR*0.5f)*0.5f, &rvL, &rvR);
                 w->shim_m = 0.0f;

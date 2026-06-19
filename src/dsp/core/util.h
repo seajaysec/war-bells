@@ -16,6 +16,21 @@ static inline float wb_clampf(float x, float lo, float hi) {
 }
 static inline float wb_lerpf(float a, float b, float t) { return a + (b - a) * t; }
 
+/* Flush denormals to zero on the audio thread. Tiny values in feedback tails (reverb/delay/IIR) drop
+ * into subnormal range and cause 10-100x CPU stalls — "the #1 mystery CPU spike in reverbs". Set per
+ * block (cheap). Covers x86 (FTZ+DAZ in MXCSR) and aarch64 / the Move (FZ in FPCR). */
+static inline void wb_flush_denormals(void) {
+#if defined(__x86_64__) || defined(__i386__)
+    unsigned int mxcsr; __asm__ volatile("stmxcsr %0" : "=m"(mxcsr));
+    mxcsr |= 0x8040u;                                   /* bit15 FTZ | bit6 DAZ */
+    __asm__ volatile("ldmxcsr %0" : : "m"(mxcsr));
+#elif defined(__aarch64__)
+    uint64_t fpcr; __asm__ volatile("mrs %0, fpcr" : "=r"(fpcr));
+    fpcr |= (1ULL << 24);                               /* FZ: flush-to-zero */
+    __asm__ volatile("msr fpcr, %0" : : "r"(fpcr));
+#endif
+}
+
 static inline float wb_i16_to_f(int16_t s) { return (float)s * (1.0f / 32768.0f); }
 
 static inline int16_t wb_f_to_i16(float x) {

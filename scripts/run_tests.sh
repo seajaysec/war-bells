@@ -25,9 +25,15 @@ for t in tests/test_*.c; do
   if "$OBJ/$name"; then echo "OK  $name"; else echo "FAIL $name"; fail=1; fi
 done
 
+# --- preset parity: the web demo's preset NAMES must match the C engine enum (single source of truth) ---
+c_names=$(sed -n '/PRESET_OPTS\[19\]/,/};/p' src/dsp/params.c | grep -oE '"[A-Za-z]+"' | tr -d '"' | tr '\n' ' ')
+js_names=$(sed -n '/const PRESETS=/,/^];/p' web_ui.html | grep -oE 'n:"[A-Za-z]+"' | sed -E 's/n:"//;s/"//' | tr '\n' ' ')
+if [ -n "$c_names" ] && [ "$c_names" = "$js_names" ]; then echo "OK  preset-parity ($c_names)";
+else echo "FAIL preset-parity (web != engine)"; echo "  C : $c_names"; echo "  JS: $js_names"; fail=1; fi
+
 # --- audit stage: every diagnostic probe in scripts/check*.c runs on every test run ---
-# checkstability exits non-zero on a real failure (runaway to the rails) and gates the build;
-# checkpresets/checklimit print level/brightness diagnostics for the record.
+# checkstability (runaway-to-rails) and checkstress (per-metric artifact scorecard vs baseline) exit
+# non-zero on a real failure and GATE the build; checkpresets/checklimit print diagnostics for the record.
 for a in scripts/check*.c; do
   [ -e "$a" ] || continue
   name="audit-$(basename "$a" .c)"
