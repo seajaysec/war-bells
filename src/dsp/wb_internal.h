@@ -40,6 +40,8 @@ typedef struct wb {
     float filter, filter_res;
     float mix, effect_vol;
     float space; int reverb_mode;
+    float sustain;                    /* space-delay feedback toward unity (sound-on-sound "storing up") */
+    float warp;                       /* 0.5 = neutral; swept delay-time = tape pitch bend (rho = 1 - D') */
     float mod_depth, mod_rate;
     int   subdiv;                     /* 0..5 */
     float tempo_manual; int tempo_src; /* 0 host, 1 manual */
@@ -73,6 +75,10 @@ typedef struct wb {
     /* space delay (feedback comb) */
     float spdl_l[WB_SPDL_LEN], spdl_r[WB_SPDL_LEN];
     int   spdl_w; float space_dtime, space_fb;
+    /* tape/feedback engine state (Sustain build + Warp pitch): smoothed read offset, loop tone LPF,
+     * loop DC blocker. warp_eff = per-block warp amount (knob + Motion). */
+    double spdl_smooth; float warp_eff;
+    float sp_lp_l, sp_lp_r, sp_dcx_l, sp_dcy_l, sp_dcx_r, sp_dcy_r;
 
     /* shimmer reverb: ONE mono pitch-shifter fed back into the reverb tail (bounded) */
     int   shimmer;                    /* 0 Off 1 Oct+ 2 Oct- 3 5th */

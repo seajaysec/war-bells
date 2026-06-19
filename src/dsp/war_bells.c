@@ -77,15 +77,49 @@ static void v2_destroy(void *inst) {
 
 /* feedback-comb space delay, stereo, with interpolated read */
 static inline void wb_space_delay(wb_t *w, float inL, float inR, float *outL, float *outR) {
-    float dly = wb_clampf(w->space_dtime, 0.02f, 1.0f) * WB_SR;
-    float pos = (float)w->spdl_w - dly;
+    float baseDly = wb_clampf(w->space_dtime, 0.02f, 1.0f) * WB_SR;
+
+    /* Neutral (no Sustain, no Warp) -> the exact original delay (existing presets unchanged). */
+    if (w->sustain < 1e-4f && w->warp_eff > 0.4999f && w->warp_eff < 0.5001f) {
+        float pos = (float)w->spdl_w - baseDly;
+        while (pos < 0.0f) pos += WB_SPDL_LEN;
+        int i0 = (int)pos; int i1 = i0 + 1; if (i1 >= WB_SPDL_LEN) i1 = 0;
+        float f = pos - (float)i0;
+        float sdL = wb_lerpf(w->spdl_l[i0], w->spdl_l[i1], f);
+        float sdR = wb_lerpf(w->spdl_r[i0], w->spdl_r[i1], f);
+        w->spdl_l[w->spdl_w] = wb_softclip(inL + sdL * w->space_fb);
+        w->spdl_r[w->spdl_w] = wb_softclip(inR + sdR * w->space_fb);
+        w->spdl_smooth = (double)baseDly;
+        if (++w->spdl_w >= WB_SPDL_LEN) w->spdl_w = 0;
+        *outL = sdL; *outR = sdR; return;
+    }
+
+    /* Tape/feedback engine. Warp scales the delay TIME (+/-1 octave); the read offset is slewed, so
+     * the rate of change IS the pitch shift (rho = 1 - D'). Sustain pushes feedback toward unity for
+     * sound-on-sound build, kept safe by a loop tone-LPF (more damping as Sustain rises), a DC
+     * blocker, and the softclip limiter. */
+    float warpRatio = exp2f((w->warp_eff - 0.5f) * 2.0f);          /* 0.5->1x, 0->0.25x, 1->4x time */
+    float targetDly = wb_clampf(baseDly * warpRatio, 64.0f, (float)(WB_SPDL_LEN - 4));
+    w->spdl_smooth += ((double)targetDly - w->spdl_smooth) * 0.0015; /* slew -> liquid pitch bend */
+    float pos = (float)w->spdl_w - (float)w->spdl_smooth;
     while (pos < 0.0f) pos += WB_SPDL_LEN;
+    while (pos >= WB_SPDL_LEN) pos -= WB_SPDL_LEN;
     int i0 = (int)pos; int i1 = i0 + 1; if (i1 >= WB_SPDL_LEN) i1 = 0;
     float f = pos - (float)i0;
     float sdL = wb_lerpf(w->spdl_l[i0], w->spdl_l[i1], f);
     float sdR = wb_lerpf(w->spdl_r[i0], w->spdl_r[i1], f);
-    w->spdl_l[w->spdl_w] = wb_softclip(inL + sdL * w->space_fb);
-    w->spdl_r[w->spdl_w] = wb_softclip(inR + sdR * w->space_fb);
+
+    float g = wb_lerpf(w->space_fb, 0.992f, w->sustain);          /* feedback toward unity */
+    float toneCoef = wb_lerpf(1.0f, 0.45f, w->sustain);           /* loop HF damping rises with Sustain */
+    w->sp_lp_l += (sdL - w->sp_lp_l) * toneCoef; float fbL = w->sp_lp_l;
+    w->sp_lp_r += (sdR - w->sp_lp_r) * toneCoef; float fbR = w->sp_lp_r;
+    float wrL = wb_softclip(inL + fbL * g);
+    float wrR = wb_softclip(inR + fbR * g);
+    /* DC blocker (one-pole HPF ~5 Hz) — mandatory once feedback nears unity */
+    float yL = wrL - w->sp_dcx_l + 0.9995f * w->sp_dcy_l; w->sp_dcx_l = wrL; w->sp_dcy_l = yL;
+    float yR = wrR - w->sp_dcx_r + 0.9995f * w->sp_dcy_r; w->sp_dcx_r = wrR; w->sp_dcy_r = yR;
+    w->spdl_l[w->spdl_w] = yL;
+    w->spdl_r[w->spdl_w] = yR;
     if (++w->spdl_w >= WB_SPDL_LEN) w->spdl_w = 0;
     *outL = sdL; *outR = sdR;
 }
@@ -124,6 +158,7 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
 
     /* Motion: one tempo-synced LFO modulating a chosen macro (computed per block) */
     float spaceEff = w->space;
+    w->warp_eff = w->warp;                 /* tape Warp = knob, unless Motion targets it (below) */
     if (w->mot_target > 0 && w->mot_depth > 1e-4f) {
         float beat = 60.0f / (w->cur_tempo > 1.0f ? w->cur_tempo : 120.0f);
         static const float DIV_BEATS[7] = { 32,16,8,4,2,1,0.5f }; /* 8/4/2/1bar,1/2,1/4,1/8 */
@@ -148,6 +183,7 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
             case 3: spaceEff = wb_clampf(w->space+a,0,1); break;                   /* Space */
             case 4: { float me=wb_clampf(w->mix+a,0,1); msqrt=sqrtf(me); dsqrt=sqrtf(1.0f-me); } break; /* Mix */
             case 5: w->chorus.depth = wb_clampf(w->mod_depth+a,0,1); break;        /* Mod */
+            case 6: w->warp_eff = wb_clampf(w->warp+a,0,1); break;                 /* Warp (tape time) */
         }
     }
 

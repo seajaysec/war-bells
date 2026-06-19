@@ -26,13 +26,13 @@ static const char *ONOFF[2]       = {"Off","On"};
 static const char *TEMPOSRC[3]    = {"Free","Sync","Man"};
 static const char *GRAINENV[4]    = {"Soft","Pluck","Swell","Gate"};
 static const char *PSCALE_OPTS[6] = {"Off","Maj","Min","Pent","Oct","5th"};
-static const char *MOT_TGT[6]     = {"Off","Act","Filt","Space","Mix","Mod"};
+static const char *MOT_TGT[7]     = {"Off","Act","Filt","Space","Mix","Mod","Warp"};
 static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/8"};
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[18] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails"};
+static const char *PRESET_OPTS[19] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -48,7 +48,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\",\"Trails\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\",\"Trails\",\"Spiral\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -70,7 +70,9 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"width\",\"name\":\"Width\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_depth\",\"name\":\"Mod Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_rate\",\"name\":\"Mod Rate\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
-"{\"key\":\"mot_target\",\"name\":\"Mot Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Act\",\"Filt\",\"Space\",\"Mix\",\"Mod\"]},"
+"{\"key\":\"sustain\",\"name\":\"Sustain\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"warp\",\"name\":\"Warp\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"display_format\":\".2f\"},"
+"{\"key\":\"mot_target\",\"name\":\"Mot Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Act\",\"Filt\",\"Space\",\"Mix\",\"Mod\",\"Warp\"]},"
 "{\"key\":\"mot_rate\",\"name\":\"Mot Rate\",\"type\":\"enum\",\"options\":[\"8bar\",\"4bar\",\"2bar\",\"1bar\",\"1/2\",\"1/4\",\"1/8\"]},"
 "{\"key\":\"mot_depth\",\"name\":\"Mot Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mot_shape\",\"name\":\"Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Tri\",\"Ramp\",\"Rand\"]},"
@@ -116,8 +118,8 @@ static const char *UI_HIERARCHY_JSON =
    "\"params\":[{\"key\":\"filter_res\",\"name\":\"Reso\"},{\"key\":\"effect_vol\",\"name\":\"FX Vol\"},{\"key\":\"grain_env\",\"name\":\"Grain Env\"},{\"key\":\"pitch_scale\",\"name\":\"Scale\"}]},"
  "\"time\":{\"name\":\"Time\",\"knobs\":[\"tempo_src\",\"subdiv\",\"tempo\"],"
    "\"params\":[{\"key\":\"tempo_src\",\"name\":\"Clock\"},{\"key\":\"subdiv\",\"name\":\"Subdiv\"},{\"key\":\"tempo\",\"name\":\"Tempo\"}]},"
- "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"shimmer\",\"width\",\"mod_depth\",\"mod_rate\"],"
-   "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"shimmer\",\"name\":\"Shimmer\"},{\"key\":\"width\",\"name\":\"Width\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
+ "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"shimmer\",\"width\",\"sustain\",\"warp\",\"mod_depth\",\"mod_rate\"],"
+   "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"shimmer\",\"name\":\"Shimmer\"},{\"key\":\"width\",\"name\":\"Width\"},{\"key\":\"sustain\",\"name\":\"Sustain\"},{\"key\":\"warp\",\"name\":\"Warp\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
  "\"motion\":{\"name\":\"Motion\",\"knobs\":[\"mot_target\",\"mot_rate\",\"mot_depth\",\"mot_shape\"],"
    "\"params\":[{\"key\":\"mot_target\",\"name\":\"Mot Dest\"},{\"key\":\"mot_rate\",\"name\":\"Mot Rate\"},{\"key\":\"mot_depth\",\"name\":\"Mot Dep\"},{\"key\":\"mot_shape\",\"name\":\"Wave\"}]},"
  "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"evo_range\",\"dice\"],"
@@ -173,6 +175,7 @@ void wb_params_defaults(wb_t *w) {
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
     w->evolve = 0.0f; w->evo_range = 1;
     w->duck = 0.0f; w->width = 1.0f;
+    w->sustain = 0.0f; w->warp = 0.5f; w->warp_eff = 0.5f;
     w->user_slot = 1;
     w->cur_tempo = 110.0f;
 }
@@ -185,7 +188,7 @@ void wb_params_defaults(wb_t *w) {
  * resets macros + value-adds to neutral so it sounds the same regardless of prior state. */
 static void apply_preset(wb_t *w, int idx) {
     if (idx < 0) idx = 0;
-    if (idx > 17) idx = 17;
+    if (idx > 18) idx = 18;
     w->preset = idx;
     /* neutral baseline (each case overrides what it needs) */
     w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
@@ -193,6 +196,7 @@ static void apply_preset(wb_t *w, int idx) {
     w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
     w->effect_vol = 0.85f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
+    w->sustain = 0.0f; w->warp = 0.5f;
     switch (idx) {
     case 0: /* Init — clean octave stack */
         w->effect=5; w->variation=0; w->activity=0.30f; w->repeats=0.40f; w->shape=0.40f;
@@ -249,7 +253,11 @@ static void apply_preset(wb_t *w, int idx) {
         w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->duck=0.65f; break;
     case 17: /* Trails — lush sustain that rings out when you tap bypass (Avalanche-style) */
         w->effect=5; w->variation=0; w->activity=0.45f; w->repeats=0.85f; w->shape=0.55f;
-        w->mix=0.85f; w->space=0.80f; w->reverb_mode=3; w->shimmer=1; w->bypass_trails=1; break;
+        w->mix=0.85f; w->space=0.80f; w->reverb_mode=3; w->shimmer=1; w->sustain=0.5f; w->bypass_trails=1; break;
+    case 18: /* Spiral — feedback builds (Sustain) + Motion warps the delay time -> re-pitching ladder */
+        w->effect=5; w->variation=0; w->activity=0.40f; w->repeats=0.70f; w->shape=0.55f;
+        w->mix=0.85f; w->space=0.75f; w->reverb_mode=3; w->sustain=0.7f;
+        w->mot_target=6; w->mot_rate=2; w->mot_depth=0.35f; w->mot_shape=0; break;   /* Motion -> Warp */
     }
     w->params_dirty = 1;
     wb_apply_all(w);
@@ -404,6 +412,8 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"evo_range",&v)==0) w->evo_range=(int)v;
         if (json_f(val,"duck",&v)==0) w->duck=v;
         if (json_f(val,"width",&v)==0) w->width=v;
+        if (json_f(val,"sustain",&v)==0) w->sustain=v;
+        if (json_f(val,"warp",&v)==0) w->warp=v;
         if (json_f(val,"preset",&v)==0) w->preset=(int)v;
         if (json_f(val,"hold",&v)==0) w->hold=(int)v;
         if (json_f(val,"hold_style",&v)==0) w->hold_style=(int)v;
@@ -434,7 +444,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         return;
     }
 
-    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,18)); }
+    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,19)); }
     else if (strcmp(key,"effect")==0)   { w->effect = enum_parse(val,EFFECT_OPTS,WB_NEFFECTS); w->params_dirty=1; }
     else if (strcmp(key,"variation")==0){ w->variation = variation_parse(w,val); w->params_dirty=1; }
     else if (strcmp(key,"activity")==0) { w->activity = wb_clampf((float)atof(val),0,1); w->params_dirty=1; }
@@ -450,10 +460,12 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"reverb_mode")==0){ w->reverb_mode = enum_parse(val,REVERB_OPTS,4); wb_apply_space(w); }
     else if (strcmp(key,"shimmer")==0)  { w->shimmer = enum_parse(val,SHIMMER_OPTS,4); }
     else if (strcmp(key,"width")==0)    { w->width = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
+    else if (strcmp(key,"sustain")==0)  { w->sustain = wb_clampf((float)atof(val),0,1); }
+    else if (strcmp(key,"warp")==0)     { w->warp = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"duck")==0)     { w->duck = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"mod_depth")==0){ w->mod_depth = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
     else if (strcmp(key,"mod_rate")==0) { w->mod_rate = wb_clampf((float)atof(val),0,1); wb_apply_tone(w); }
-    else if (strcmp(key,"mot_target")==0){ w->mot_target = enum_parse(val,MOT_TGT,6); }
+    else if (strcmp(key,"mot_target")==0){ w->mot_target = enum_parse(val,MOT_TGT,7); }
     else if (strcmp(key,"mot_rate")==0) { w->mot_rate = enum_parse(val,MOT_RATE,7); }
     else if (strcmp(key,"mot_depth")==0){ w->mot_depth = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"mot_shape")==0){ w->mot_shape = enum_parse(val,MOT_SHAPE,4); }
@@ -515,6 +527,8 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"reverb_mode")==0) return snprintf(buf,buf_len,"%s",REVERB_OPTS[w->reverb_mode]);
     if (strcmp(key,"shimmer")==0)     return snprintf(buf,buf_len,"%s",SHIMMER_OPTS[w->shimmer]);
     if (strcmp(key,"width")==0)       return snprintf(buf,buf_len,"%.3f",w->width);
+    if (strcmp(key,"sustain")==0)     return snprintf(buf,buf_len,"%.3f",w->sustain);
+    if (strcmp(key,"warp")==0)        return snprintf(buf,buf_len,"%.3f",w->warp);
     if (strcmp(key,"duck")==0)        return snprintf(buf,buf_len,"%.3f",w->duck);
     if (strcmp(key,"mod_depth")==0)   return snprintf(buf,buf_len,"%.3f",w->mod_depth);
     if (strcmp(key,"mod_rate")==0)    return snprintf(buf,buf_len,"%.3f",w->mod_rate);
@@ -565,7 +579,8 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"loop_reverse\":%d,\"loop_fade\":%.4f,\"loop_fademode\":%d,\"loop_route\":%d,\"loop_order\":%d,"
           "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
           "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
-          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d,\"bypass_trails\":%d}",
+          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d,\"bypass_trails\":%d,"
+          "\"sustain\":%.4f,\"warp\":%.4f}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
@@ -573,7 +588,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
           w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
           w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
-          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails);
+          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails,w->sustain,w->warp);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

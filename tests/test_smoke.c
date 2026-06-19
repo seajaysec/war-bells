@@ -160,6 +160,22 @@ int main(void){
     CHECK("Trails bypass rings the tail out (hard cuts it)", rtr/40 > rhard/40 * 4.0 && rtr > 0.0);
     api->set_param(inst,"bypass","Off"); api->set_param(inst,"bypass_trails","Off");
 
+    /* Sustain: high feedback makes the space-delay tail persist far longer than low (storing up),
+     * and stays bounded (soft-limit + DC blocker). Warp swept must not blow up either. */
+    /* Sustain pushed to unity + Warp swept hard, under loud input: must never blow up (the
+     * live-reliability property — the soft-limit + DC blocker keep the feedback bounded). rms()
+     * here is normalized 0..1, so a clean engine stays at/under ~1.0. */
+    api->set_param(inst,"preset","Init"); api->set_param(inst,"space","0.9"); api->set_param(inst,"mix","0.8");
+    api->set_param(inst,"sustain","1.0"); api->set_param(inst,"activity","0.8");
+    double smax=0; int sbad=0;
+    for(int blk=0;blk<500;blk++){ char wb_[8]; snprintf(wb_,sizeof wb_,"%.2f",(blk%50)/50.0f);
+      api->set_param(inst,"warp",wb_);                         /* sweep Warp continuously */
+      fill_noise(buf,128,&st); api->process_block(inst,buf,128);
+      double r=rms(buf,128); if(r>smax)smax=r; if(!(r>=0.0&&r<2.0))sbad++; }
+    printf("  sustain+warp stress: maxrms=%.3f nonfinite=%d\n", smax, sbad);
+    CHECK("Sustain=unity + Warp sweep stay bounded (no blowup)", smax < 1.05 && sbad==0);
+    api->set_param(inst,"sustain","0.0"); api->set_param(inst,"warp","0.5"); api->set_param(inst,"preset","Init");
+
     /* timing defaults to Free (free-running, drifts) */
     { void *i2=api->create_instance("/tmp",NULL); char tb[16];
       api->get_param(i2,"tempo_src",tb,sizeof(tb));
@@ -177,10 +193,10 @@ int main(void){
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
     /* every character preset (one per effect + value-add showcases) loads + renders bounded */
-    { const char *PS[18]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails"};
+    { const char *PS[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
       int allok=1;
-      for(int p=0;p<18;p++){ api->set_param(inst,"preset",PS[p]);
+      for(int p=0;p<19;p++){ api->set_param(inst,"preset",PS[p]);
         double e=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); e+=rms(buf,128); }
         if(!(e/24 < 32760.0 && e >= 0.0)) { allok=0; printf("  preset %s rms=%.1f\n", PS[p], e/24); } }
       CHECK("all 16 presets render bounded", allok); }

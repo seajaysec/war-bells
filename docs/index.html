@@ -296,6 +296,12 @@
     <div class="panel"><h3>Shimmer</h3><p>Feeds the reverb tail through a pitch-shifter for rising
       octave/fifth shimmer (Space FX page). <span class="ictl" data-k="shimmer"></span>
       <span class="ictl" data-k="width"></span></p></div>
+    <div class="panel"><h3>Sustain &amp; Warp (tape engine)</h3><p><b>Sustain</b> pushes the space-delay
+      feedback toward unity so repeats <i>accumulate instead of decay</i> — sound-on-sound "storing
+      up", kept safe by a soft-limit + DC blocker. <b>Warp</b> sweeps the delay <i>time</i>, which is
+      secretly a pitch shifter (ρ = 1 − D'): move it to bend/dive, or point the Motion lane at it for
+      vibrato. Stack them and the stored swells re-pitch as they cycle (the <i>Spiral</i> preset).
+      <span class="ictl" data-k="sustain"></span><span class="ictl" data-k="warp"></span></p></div>
     <div class="panel"><h3>Scale-lock</h3><p>Snaps pitched grains/glides to a scale so everything
       stays in key (Tone page). <span class="ictl" data-k="pitch_scale"></span></p></div>
     <div class="panel"><h3>Motion</h3><p>A tempo-synced LFO that modulates a chosen macro — built-in
@@ -434,7 +440,7 @@ const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large
 /* one tasteful example per effect + the value-add showcases — mirrors the DSP apply_preset.
    B=baseline neutral so each preset is self-contained (matches the engine's reset-then-set). */
 const PB={filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,grain_env:0,reverse:0,reverb_mode:0,effect_vol:.85,
-          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0,bypass_trails:0};
+          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0,bypass_trails:0,sustain:0,warp:.5};
 const PRESETS=[
  {n:"Init",d:"clean octave stack",s:{...PB,effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15}},
  {n:"Arp",d:"plucky glitch arps",s:{...PB,effect:0,variation:1,activity:.55,repeats:.4,shape:.45,mix:.75,space:.15,grain_env:1}},
@@ -453,7 +459,8 @@ const PRESETS=[
  {n:"Evolv",d:"self-evolving",s:{...PB,effect:8,variation:2,activity:.65,repeats:.55,shape:.45,mix:.85,space:.45,reverb_mode:2,evolve:.6,evo_range:1}},
  {n:"Scale",d:"scale-locked stack",s:{...PB,effect:5,variation:3,activity:.65,repeats:.45,shape:.5,mix:.9,space:.4,reverb_mode:2,pitch_scale:1}},
  {n:"Bloom",d:"wet swells in gaps",s:{...PB,effect:6,variation:0,activity:.5,repeats:.55,shape:.5,mix:.9,space:.6,reverb_mode:2,duck:.65}},
- {n:"Trails",d:"tail rings on bypass",s:{...PB,effect:5,variation:0,activity:.45,repeats:.85,shape:.55,mix:.85,space:.8,reverb_mode:3,shimmer:1,bypass_trails:1}},
+ {n:"Trails",d:"tail rings on bypass",s:{...PB,effect:5,variation:0,activity:.45,repeats:.85,shape:.55,mix:.85,space:.8,reverb_mode:3,shimmer:1,sustain:.5,bypass_trails:1}},
+ {n:"Spiral",d:"builds + re-pitches",s:{...PB,effect:5,variation:0,activity:.4,repeats:.7,shape:.55,mix:.85,space:.75,reverb_mode:3,sustain:.7,mot_target:6,mot_rate:2,mot_depth:.35}},
 ];
 
 /* ---------- param model (mirrors chain_params) ---------- */
@@ -494,9 +501,11 @@ const P={
  bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
  shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
  width:{name:"Width",t:"pct",v:1},
+ sustain:{name:"Sustain",t:"pct",v:0},
+ warp:{name:"Warp",t:"pct",v:.5},
  pitch_scale:{name:"Scale",t:"enum",o:["Off","Maj","Min","Pent","Oct","5th"],v:0},
  duck:{name:"Bloom",t:"pct",v:0},
- mot_target:{name:"Mot Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod"],v:0},
+ mot_target:{name:"Mot Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod","Warp"],v:0},
  mot_rate:{name:"Mot Rate",t:"enum",o:["8bar","4bar","2bar","1bar","1/2","1/4","1/8"],v:3},
  mot_depth:{name:"Mot Dep",t:"pct",v:.4},
  mot_shape:{name:"Wave",t:"enum",o:["Sine","Tri","Ramp","Rand"],v:0},
@@ -508,7 +517,7 @@ const PAGES={
  root:{title:"Effect",knobs:["effect","variation","activity","repeats","shape","mix","space","filter"]},
  tone:{title:"Tone",knobs:["filter_res","effect_vol","grain_env","pitch_scale"]},
  time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
- spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","mod_depth","mod_rate"]},
+ spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","sustain","warp","mod_depth","mod_rate"]},
  motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},
  generate:{title:"Generate",knobs:["evolve","evo_range","dice"]},
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
