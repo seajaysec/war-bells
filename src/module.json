@@ -2,7 +2,7 @@
   "id": "war_bells",
   "name": "War Bells",
   "abbrev": "WB",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Granular / glitch / delay / looper multi-FX: 11 effects x 4 variations, Hold sampler, reverb, resonant filter and a 60s looper.",
   "author": "seajaysec",
   "license": "AGPL-3.0-or-later",

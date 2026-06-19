@@ -41,15 +41,22 @@ typedef struct { float env, lp; } wb_tlim_t;
 static inline float wb_tape_limit(wb_tlim_t *t, float x) {
     float a = x < 0.0f ? -x : x;
     t->env += (a - t->env) * (a > t->env ? 0.05f : 0.00015f);   /* fast attack ~0.5ms, slow release */
+    /* clean gain-riding holds the level near the threshold (no waveshaping = no added harmonics) */
     float g = 1.0f;
-    if (t->env > 0.6f) g = (0.6f + (t->env - 0.6f) * 0.3f) / t->env;   /* gentle glue above 0.6 (~3:1) */
+    if (t->env > 0.6f) g = (0.6f + (t->env - 0.6f) * 0.18f) / t->env;   /* firm limit toward ~0.6-0.8 */
     float y = x * g;
-    float gr = 1.0f - g;                                          /* 0 clean .. how hard it's working */
-    float coef = 1.0f - gr * 1.3f; if (coef < 0.2f) coef = 0.2f;  /* darker as it works (tape HF loss) */
+    /* WARMTH: roll highs off by how hard you're PUSHING (envelope over threshold), not just by the
+     * gain reduction — so even when the gain ride holds the level, hot swells audibly soften/darken
+     * (tape/optical HF loss). Done after the gain ride, so it darkens rather than brightens. */
+    float over = t->env - 0.6f; if (over < 0.0f) over = 0.0f;
+    float work = over / (over + 0.5f);                           /* 0 (clean) .. ~1 (pushed hard) */
+    float coef = 1.0f - work * 1.6f; if (coef < 0.1f) coef = 0.1f;
     t->lp += (y - t->lp) * coef;
-    y += (t->lp - y) * (gr * 0.9f);                              /* blend the warm/dark version in by work */
+    float blend = work * 0.8f;
+    y += (t->lp - y) * blend;
+    /* final soft ceiling — only catches the rare overshoot the gain ride didn't (minimal distortion) */
     float s = y < 0.0f ? -1.0f : 1.0f, ay = y < 0.0f ? -y : y;
-    if (ay > 0.8f) ay = 0.8f + 0.2f * ((ay - 0.8f) / ((ay - 0.8f) + 0.25f));   /* soft ceiling <1.0 */
+    if (ay > 0.9f) ay = 0.9f + 0.1f * ((ay - 0.9f) / ((ay - 0.9f) + 0.15f));
     return s * ay;
 }
 
