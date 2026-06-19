@@ -260,8 +260,8 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         if (w->bypass_trails) { outL = outL + inL * bc; outR = outR + inR * bc; }
         else { outL = wb_lerpf(outL, inL, bc); outR = wb_lerpf(outR, inR, bc); }
 
-        audio[i*2]   = wb_f_to_i16(outL);
-        audio[i*2+1] = wb_f_to_i16(outR);
+        audio[i*2]   = wb_f_to_i16(wb_limit(outL));   /* master soft limiter — never hard-clips */
+        audio[i*2+1] = wb_f_to_i16(wb_limit(outR));
     }
 }
 

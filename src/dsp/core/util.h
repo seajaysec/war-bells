@@ -32,6 +32,17 @@ static inline float wb_softclip(float x) {
     return x - (0.148148f * x * x * x); /* x - x^3 * (1/6.75) */
 }
 
+/* master output limiter: transparent below 0.8, soft knee above, asymptotes to <1.0 so the output
+ * can NEVER hard-clip (no harsh digital clipping no matter how hot the patch/feedback gets).
+ * Cheap: a branch skips it entirely for normal levels. */
+static inline float wb_limit(float x) {
+    float a = x < 0.0f ? -x : x;
+    if (a <= 0.8f) return x;
+    float s = x < 0.0f ? -1.0f : 1.0f;
+    float e = a - 0.8f;
+    return s * (0.8f + 0.2f * (e / (e + 0.2f)));   /* 0.8->0.8, ->1.0 asymptotically */
+}
+
 /* bit-crush a -1..1 sample to `bits` bit depth (>=24 ~ transparent) */
 static inline float wb_crush(float x, float bits) {
     if (bits >= 23.5f) return x;

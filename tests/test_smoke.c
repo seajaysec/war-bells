@@ -192,14 +192,22 @@ int main(void){
       CHECK("preset Birds -> Chains + reverse", strcmp(e2,"Chain")==0 && strcmp(r2,"On")==0); }
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
-    /* every character preset (one per effect + value-add showcases) loads + renders bounded */
+    /* Every preset must (a) PRODUCE SOUND — not silently kill the engine — and (b) NOT hard-clip
+     * (the master limiter must hold) under a sustained source. Feed sustained noise (builds the
+     * reverb), measure avg level + the worst int16 peak. (The old check compared normalized rms to
+     * an int16 threshold, so it was always true and caught neither failure.) */
     { const char *PS[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
                           "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
-      int allok=1;
+      int silent=0, clipped=0;
       for(int p=0;p<19;p++){ api->set_param(inst,"preset",PS[p]);
-        double e=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); e+=rms(buf,128); }
-        if(!(e/24 < 32760.0 && e >= 0.0)) { allok=0; printf("  preset %s rms=%.1f\n", PS[p], e/24); } }
-      CHECK("all 16 presets render bounded", allok); }
+        double e=0; int pk=0;
+        for(int blk=0;blk<50;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128);
+          e+=rms(buf,128); for(int i=0;i<256;i++){ int a=buf[i]<0?-buf[i]:buf[i]; if(a>pk)pk=a; } }
+        double avg=e/50;
+        if(avg < 0.01){ silent++; printf("  SILENT preset %s (rms %.4f)\n", PS[p], avg); }
+        if(pk >= 32767){ clipped++; printf("  HARD-CLIP preset %s (peak %d)\n", PS[p], pk); } }
+      CHECK("all 19 presets produce sound (none kill the engine)", silent==0);
+      CHECK("no preset hard-clips (master limiter holds)", clipped==0); }
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
     /* user-preset bank: save params to a slot, change, reload -> restored */

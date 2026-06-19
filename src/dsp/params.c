@@ -195,7 +195,7 @@ static void apply_preset(wb_t *w, int idx) {
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
     w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
-    w->effect_vol = 0.85f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
+    w->effect_vol = 0.6f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
     w->sustain = 0.0f; w->warp = 0.5f;
     switch (idx) {
     case 0: /* Init — clean octave stack */
@@ -221,7 +221,7 @@ static void apply_preset(wb_t *w, int idx) {
         w->mix=0.90f; w->space=0.35f; w->reverb_mode=2; w->pitch_scale=4; break;
     case 7: /* Cloud — lush dense grain wash with shimmer */
         w->effect=6; w->variation=1; w->activity=0.65f; w->repeats=0.60f; w->shape=0.50f;
-        w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->shimmer=1; break;
+        w->mix=0.85f; w->effect_vol=0.5f; w->space=0.4f; w->reverb_mode=2; w->shimmer=1; break;
     case 8: /* Drone — resonant bandpass drone, slow filter motion, vast space */
         w->effect=7; w->variation=2; w->activity=0.20f; w->repeats=0.85f; w->shape=0.50f;
         w->mix=0.70f; w->space=0.50f; w->reverb_mode=3;
@@ -253,7 +253,7 @@ static void apply_preset(wb_t *w, int idx) {
         w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->duck=0.65f; break;
     case 17: /* Trails — lush sustain that rings out when you tap bypass (Avalanche-style) */
         w->effect=5; w->variation=0; w->activity=0.45f; w->repeats=0.85f; w->shape=0.55f;
-        w->mix=0.85f; w->space=0.80f; w->reverb_mode=3; w->shimmer=1; w->sustain=0.5f; w->bypass_trails=1; break;
+        w->mix=0.7f; w->effect_vol=0.45f; w->space=0.55f; w->reverb_mode=2; w->shimmer=1; w->sustain=0.25f; w->bypass_trails=1; break;
     case 18: /* Spiral — feedback builds (Sustain) + Motion warps the delay time -> re-pitching ladder */
         w->effect=5; w->variation=0; w->activity=0.40f; w->repeats=0.70f; w->shape=0.55f;
         w->mix=0.85f; w->space=0.75f; w->reverb_mode=3; w->sustain=0.7f;
