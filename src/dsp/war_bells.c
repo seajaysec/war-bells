@@ -1,3 +1,16 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * War Bells — granular/glitch/delay/looper audio FX for Ableton Move
+ * Copyright (C) 2026 Chris Farrell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version. It is distributed WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU AGPL <https://www.gnu.org/licenses/> for more details.
+ */
+
 /* war_bells.c — War Bells audio_fx plugin: entry point, instance lifecycle, the
  * per-sample process_block signal chain, and MIDI onset capture.
  *
