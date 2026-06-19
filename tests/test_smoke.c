@@ -216,7 +216,8 @@ int main(void){
     /* every editable param must carry type metadata so the host can edit it */
     CHECK("chain_params: mix is typed float", strstr(big,"\"key\":\"mix\",\"name\":\"Mix\",\"type\":\"float\"")!=NULL);
     CHECK("chain_params: mod_depth typed float w/ unit", strstr(big,"\"key\":\"mod_depth\",\"name\":\"Mod Dep\",\"type\":\"float\"")!=NULL && strstr(big,"\"unit\":\"%\"")!=NULL);
-    CHECK("chain_params: loop_only present (enum)", strstr(big,"\"key\":\"loop_only\",\"name\":\"Lp Only\",\"type\":\"enum\"")!=NULL);
+    CHECK("chain_params: slim looper keeps loop_level (typed)", strstr(big,"\"key\":\"loop_level\",\"name\":\"Level\",\"type\":\"float\"")!=NULL);
+    CHECK("chain_params: dropped looper extras gone (loop_only/loop_burst)", strstr(big,"\"key\":\"loop_only\"")==NULL && strstr(big,"\"key\":\"loop_burst\"")==NULL);
     CHECK("chain_params: variation options are per-effect labels", strstr(big,"\"key\":\"variation\"")!=NULL && strstr(big,"\"range\"")!=NULL);
     { int cnt=0; const char *p=big; while((p=strstr(p,"\"key\":"))){cnt++;p+=6;}
       printf("  chain_params count=%d\n",cnt);

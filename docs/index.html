@@ -320,15 +320,14 @@
 
 <section id="looper">
   <h2><span class="num">10</span>The 60-second looper</h2>
-  <p class="lead">Record, overdub, reverse, re-speed, save. Transport:
-   <span class="ictl" data-k="transport"></span></p>
+  <p class="lead">Record, overdub, re-speed. Transport:
+   <span class="ictl" data-k="transport"></span>
+   <span class="muted">(buffers allocate only when you record — idle instances cost no RAM; the loop
+   doesn't survive a Move clip/patch change, so save it to a User Slot to keep it).</span></p>
   <div class="grid g3">
-    <div class="panel"><h3>Level &amp; Speed</h3><span class="ictl" data-k="loop_level"></span>
-      <span class="ictl" data-k="loop_speed"></span></div>
-    <div class="panel"><h3>Route &amp; Op</h3><span class="ictl" data-k="loop_route"></span>
-      <span class="ictl" data-k="loop_order"></span></div>
-    <div class="panel"><h3>Quantize · Burst</h3><span class="ictl" data-k="loop_quantize"></span>
-      <span class="ictl" data-k="loop_burst"></span></div>
+    <div class="panel"><h3>On / off</h3><span class="ictl" data-k="looper_on"></span></div>
+    <div class="panel"><h3>Level</h3><span class="ictl" data-k="loop_level"></span></div>
+    <div class="panel"><h3>Speed</h3><span class="ictl" data-k="loop_speed"></span></div>
   </div>
 </section>
 
@@ -348,8 +347,7 @@
   <div class="grid g3">
     <div class="panel"><h3>Input</h3><span class="ictl" data-k="input_mode"></span>
       <span class="ictl" data-k="input_gain"></span></div>
-    <div class="panel"><h3>Bypass</h3><span class="ictl" data-k="bypass"></span>
-      <span class="ictl" data-k="bypass_style"></span></div>
+    <div class="panel"><h3>Bypass</h3><span class="ictl" data-k="bypass"></span></div>
     <div class="panel"><h3>Tone extras</h3><span class="ictl" data-k="filter_res"></span>
       <span class="ictl" data-k="effect_vol"></span></div>
   </div>
@@ -424,8 +422,8 @@ const CATS={Loops:{c:"var(--loops)",h:168,d:"loops at various speeds"},Grains:{c
 const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large & lush"],["Vast","endless wash"]];
 const PRESETS=[
  {n:"Init",d:"clean default",s:{effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15,filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,reverb_mode:0,grain_env:0,reverse:0}},
- {n:"Erase",d:"lingering slapback",s:{effect:7,variation:0,activity:.15,repeats:.85,shape:.45,mix:.6,effect_vol:.8,space:.25,filter:1,mod_depth:.1,reverb_mode:1,grain_env:0,reverse:0}},
- {n:"Edit",d:"edited-in-post",s:{effect:7,variation:0,activity:.4,repeats:.5,shape:.5,mix:.6,effect_vol:.8,space:.45,filter:1,mod_depth:.2,reverb_mode:2,grain_env:2,reverse:0}},
+ {n:"Tail",d:"lingering slapback",s:{effect:7,variation:0,activity:.15,repeats:.85,shape:.45,mix:.6,effect_vol:.8,space:.25,filter:1,mod_depth:.1,reverb_mode:1,grain_env:0,reverse:0}},
+ {n:"Post",d:"edited-in-post",s:{effect:7,variation:0,activity:.4,repeats:.5,shape:.5,mix:.6,effect_vol:.8,space:.45,filter:1,mod_depth:.2,reverb_mode:2,grain_env:2,reverse:0}},
  {n:"Chor",d:"lush mod chorus",s:{effect:6,variation:0,activity:.15,repeats:.3,shape:.5,mix:.5,effect_vol:.25,space:.1,mod_depth:.85,mod_rate:.55,reverb_mode:0,grain_env:0,reverse:0}},
  {n:"Shimr",d:"reverse shimmer",s:{effect:10,variation:2,activity:.6,repeats:.5,shape:.6,mix:1,effect_vol:.9,space:.7,reverb_mode:2,reverse:1,grain_env:2}},
  {n:"Birds",d:"reverse onsets",s:{effect:8,variation:3,activity:.75,repeats:.4,shape:.4,mix:.8,effect_vol:.9,space:.2,reverse:1,grain_env:1}},
@@ -449,13 +447,13 @@ const P={
  tempo:{name:"Tempo",t:"bpm",v:110,min:20,max:300},
  reverb_mode:{name:"Reverb",t:"enum",o:["Room","Dark","Hall","Vast"],v:0},
  mod_depth:{name:"Mod Dep",t:"pct",v:0},mod_rate:{name:"Mod Rate",t:"pct",v:.4},
- hold:{name:"Hold",t:"enum",o:["Off","On"],v:0},hold_style:{name:"Hold Md",t:"enum",o:["Latch","Gate"],v:0},
+ hold:{name:"Hold",t:"enum",o:["Off","On"],v:0},hold_style:{name:"Hold Mode",t:"enum",o:["Latch","Gate"],v:0},
  looper_on:{name:"Looper",t:"enum",o:["Off","On"],v:0},
- transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase","Undo","Save","Load"],v:0},
+ transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase"],v:0},
  loop_reverse:{name:"Lp Rev",t:"enum",o:["Off","On"],v:0},
- loop_level:{name:"Lp Level",t:"pct",v:.9},loop_fade:{name:"Lp Fade",t:"pct",v:.1},
+ loop_level:{name:"Level",t:"pct",v:.9},loop_fade:{name:"Lp Fade",t:"pct",v:.1},
  loop_fademode:{name:"Fade",t:"enum",o:["Both","In","Out"],v:0},
- loop_speed:{name:"Lp Speed",t:"x",v:1,min:.25,max:4},
+ loop_speed:{name:"Speed",t:"x",v:1,min:.25,max:4},
  loop_route:{name:"Route",t:"enum",o:["Post","Pre"],v:0},
  loop_order:{name:"Op",t:"enum",o:["Std","Dub1"],v:0},
  loop_quantize:{name:"Quantize",t:"enum",o:["Off","On"],v:0},
@@ -471,7 +469,7 @@ const P={
  width:{name:"Width",t:"pct",v:1},
  pitch_scale:{name:"Scale",t:"enum",o:["Off","Maj","Min","Pent","Oct","5th"],v:0},
  duck:{name:"Duck",t:"pct",v:0},
- mot_target:{name:"Mod Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod"],v:0},
+ mot_target:{name:"Mot Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod"],v:0},
  mot_rate:{name:"Mot Rate",t:"enum",o:["8bar","4bar","2bar","1bar","1/2","1/4","1/8"],v:3},
  mot_depth:{name:"Mot Dep",t:"pct",v:.4},
  mot_shape:{name:"Wave",t:"enum",o:["Sine","Tri","Ramp","Rand"],v:0},
@@ -488,9 +486,8 @@ const PAGES={
  generate:{title:"Generate",knobs:["evolve","evo_range","dice"]},
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
  looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed"]},
- looper2:{title:"Looper 2",knobs:["loop_fademode","loop_order","loop_only","loop_burst"]},
  user:{title:"User",knobs:["user_slot","user_op"]},
- config:{title:"Config",knobs:["input_mode","input_gain","bypass","bypass_style"]},
+ config:{title:"Config",knobs:["input_mode","input_gain","bypass"]},
 };
 let curPage="root";
 

@@ -37,14 +37,12 @@ static void *v2_create(const char *module_dir, const char *config_json) {
     w->cap_r = (float*)calloc(cap, sizeof(float));
     w->dl_l  = (float*)calloc(dlen, sizeof(float));
     w->dl_r  = (float*)calloc(dlen, sizeof(float));
-    w->lp_bl = (int16_t*)calloc(lcap, sizeof(int16_t));
-    w->lp_br = (int16_t*)calloc(lcap, sizeof(int16_t));
-    w->lp_ol = (int16_t*)calloc(lcap, sizeof(int16_t));
-    w->lp_or = (int16_t*)calloc(lcap, sizeof(int16_t));
-    if (!w->cap_l||!w->cap_r||!w->dl_l||!w->dl_r||!w->lp_bl||!w->lp_br||!w->lp_ol||!w->lp_or) {
+    /* looper buffers (~21 MB) are allocated lazily on first arm — an idle War Bells costs 0 MB
+     * for the looper, which matters when several instances are loaded. See wb_loop_ensure(). */
+    w->lp_bl = w->lp_br = w->lp_ol = w->lp_or = NULL;
+    if (!w->cap_l||!w->cap_r||!w->dl_l||!w->dl_r) {
         wb_log("alloc failed");
-        free(w->cap_l);free(w->cap_r);free(w->dl_l);free(w->dl_r);
-        free(w->lp_bl);free(w->lp_br);free(w->lp_ol);free(w->lp_or);free(w);
+        free(w->cap_l);free(w->cap_r);free(w->dl_l);free(w->dl_r);free(w);
         return NULL;
     }
 

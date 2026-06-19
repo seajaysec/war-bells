@@ -37,7 +37,14 @@ static inline void wb_looper_init(wb_looper_t *lp, int16_t *bl, int16_t *br,
     lp->fademode = WB_FADE_INOUT; lp->only = 0;
 }
 
+/* attach lazily-allocated buffers (idle instances keep these NULL = 0 RAM) */
+static inline void wb_looper_attach(wb_looper_t *lp, int16_t *bl, int16_t *br,
+                                    int16_t *ol, int16_t *or_, int cap) {
+    lp->base_l = bl; lp->base_r = br; lp->od_l = ol; lp->od_r = or_; lp->cap = cap;
+}
+
 static inline void wb_looper_clear(wb_looper_t *lp) {
+    if (!lp->base_l) { lp->state = WB_LP_IDLE; lp->frames = 0; lp->writepos = 0; lp->ph = 0.0; return; }
     memset(lp->base_l, 0, sizeof(int16_t) * lp->cap);
     memset(lp->base_r, 0, sizeof(int16_t) * lp->cap);
     memset(lp->od_l, 0, sizeof(int16_t) * lp->cap);
@@ -46,7 +53,7 @@ static inline void wb_looper_clear(wb_looper_t *lp) {
 }
 /* save the loop (base + overdub mixed down) to a WAV; returns 0 ok */
 static inline int wb_looper_save(wb_looper_t *lp, const char *path) {
-    if (lp->frames < 1) return -1;
+    if (!lp->base_l || lp->frames < 1) return -1;
     /* mix overdub into base in place (overdubs are mixed down on save) */
     for (int i = 0; i < lp->frames; i++) {
         float ml = wb_i16_to_f(lp->base_l[i]) + wb_i16_to_f(lp->od_l[i]);
@@ -61,6 +68,7 @@ static inline int wb_looper_save(wb_looper_t *lp, const char *path) {
 
 /* load a loop WAV into the base layer; clears overdub; starts playback. */
 static inline int wb_looper_load(wb_looper_t *lp, const char *path) {
+    if (!lp->base_l) return -1;
     memset(lp->base_l, 0, sizeof(int16_t) * lp->cap);
     memset(lp->base_r, 0, sizeof(int16_t) * lp->cap);
     memset(lp->od_l, 0, sizeof(int16_t) * lp->cap);
@@ -72,12 +80,14 @@ static inline int wb_looper_load(wb_looper_t *lp, const char *path) {
 }
 
 static inline void wb_looper_undo(wb_looper_t *lp) {
+    if (!lp->od_l) return;
     memset(lp->od_l, 0, sizeof(int16_t) * lp->cap);
     memset(lp->od_r, 0, sizeof(int16_t) * lp->cap);
     if (lp->state == WB_LP_DUB) lp->state = WB_LP_PLAY;
 }
 
 static inline void wb_looper_rec_start(wb_looper_t *lp) {
+    if (!lp->base_l) return;               /* buffers not allocated yet — caller must ensure first */
     wb_looper_clear(lp);
     lp->state = WB_LP_REC; lp->writepos = 0;
 }
@@ -114,6 +124,8 @@ static inline int wb_looper_process(wb_looper_t *lp, float thruL, float thruR,
                                     float *outL, float *outR) {
     int hit_cap = 0;
     float playL = 0.0f, playR = 0.0f;
+
+    if (!lp->base_l) { *outL = thruL; *outR = thruR; return 0; }   /* lazy: no buffer => pass-thru */
 
     if (lp->state == WB_LP_REC) {
         lp->base_l[lp->writepos] = wb_f_to_i16(recL);

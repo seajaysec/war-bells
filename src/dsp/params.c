@@ -31,7 +31,7 @@ static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[8] = {"Init","Erase","Edit","Chor","Shimr","Birds","Glass","Pad"};
+static const char *PRESET_OPTS[8] = {"Init","Tail","Post","Chor","Shimr","Birds","Glass","Pad"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -47,7 +47,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Erase\",\"Edit\",\"Chor\",\"Shimr\",\"Birds\",\"Glass\",\"Pad\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Tail\",\"Post\",\"Chor\",\"Shimr\",\"Birds\",\"Glass\",\"Pad\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -69,7 +69,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"width\",\"name\":\"Width\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_depth\",\"name\":\"Mod Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mod_rate\",\"name\":\"Mod Rate\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
-"{\"key\":\"mot_target\",\"name\":\"Mod Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Act\",\"Filt\",\"Space\",\"Mix\",\"Mod\"]},"
+"{\"key\":\"mot_target\",\"name\":\"Mot Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Act\",\"Filt\",\"Space\",\"Mix\",\"Mod\"]},"
 "{\"key\":\"mot_rate\",\"name\":\"Mot Rate\",\"type\":\"enum\",\"options\":[\"8bar\",\"4bar\",\"2bar\",\"1bar\",\"1/2\",\"1/4\",\"1/8\"]},"
 "{\"key\":\"mot_depth\",\"name\":\"Mot Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mot_shape\",\"name\":\"Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Tri\",\"Ramp\",\"Rand\"]},"
@@ -77,24 +77,15 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"evo_range\",\"name\":\"Range\",\"type\":\"enum\",\"options\":[\"Soft\",\"Mid\",\"Wild\"]},"
 "{\"key\":\"dice\",\"name\":\"Dice\",\"type\":\"enum\",\"options\":[\"-\",\"Roll\"]},"
 "{\"key\":\"hold\",\"name\":\"Hold\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"hold_style\",\"name\":\"Hold Md\",\"type\":\"enum\",\"options\":[\"Latch\",\"Gate\"]},"
+"{\"key\":\"hold_style\",\"name\":\"Hold Mode\",\"type\":\"enum\",\"options\":[\"Latch\",\"Gate\"]},"
 "{\"key\":\"duck\",\"name\":\"Duck\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"looper_on\",\"name\":\"Looper\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\",\"Undo\",\"Save\",\"Load\"]},"
-"{\"key\":\"loop_reverse\",\"name\":\"Lp Rev\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"loop_level\",\"name\":\"Lp Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
-"{\"key\":\"loop_fade\",\"name\":\"Lp Fade\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
-"{\"key\":\"loop_fademode\",\"name\":\"Fade\",\"type\":\"enum\",\"options\":[\"Both\",\"In\",\"Out\"]},"
-"{\"key\":\"loop_speed\",\"name\":\"Lp Speed\",\"type\":\"float\",\"min\":0.25,\"max\":4,\"step\":0.05,\"display_format\":\".2f\"},"
-"{\"key\":\"loop_route\",\"name\":\"Route\",\"type\":\"enum\",\"options\":[\"Post\",\"Pre\"]},"
-"{\"key\":\"loop_order\",\"name\":\"Op\",\"type\":\"enum\",\"options\":[\"Std\",\"Dub1\"]},"
-"{\"key\":\"loop_quantize\",\"name\":\"Quantize\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"loop_only\",\"name\":\"Lp Only\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"loop_burst\",\"name\":\"Burst\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
+"{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\"]},"
+"{\"key\":\"loop_level\",\"name\":\"Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"loop_speed\",\"name\":\"Speed\",\"type\":\"float\",\"min\":0.25,\"max\":4,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"input_mode\",\"name\":\"Input\",\"type\":\"enum\",\"options\":[\"Ster\",\"Mono\"]},"
 "{\"key\":\"input_gain\",\"name\":\"In Gain\",\"type\":\"float\",\"min\":0,\"max\":2,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"bypass\",\"name\":\"Bypass\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"bypass_style\",\"name\":\"Byp Mode\",\"type\":\"enum\",\"options\":[\"Buf\",\"Trail\",\"True\"]},"
 "{\"key\":\"user_slot\",\"name\":\"User Slot\",\"type\":\"int\",\"min\":1,\"max\":16,\"step\":1},"
 "{\"key\":\"user_op\",\"name\":\"User Op\",\"type\":\"enum\",\"options\":[\"Idle\",\"Save\",\"Load\",\"Del\"]}"
 "]";
@@ -111,7 +102,7 @@ static const char *UI_HIERARCHY_JSON =
    "{\"key\":\"space\",\"name\":\"Space\"},{\"key\":\"filter\",\"name\":\"Filter\"},"
    "{\"level\":\"tone\",\"name\":\"Tone\"},{\"level\":\"time\",\"name\":\"Time\"},"
    "{\"level\":\"spacefx\",\"name\":\"Space FX\"},{\"level\":\"motion\",\"name\":\"Motion\"},{\"level\":\"generate\",\"name\":\"Generate\"},{\"level\":\"perform\",\"name\":\"Perform\"},"
-   "{\"level\":\"looper\",\"name\":\"Looper\"},{\"level\":\"looper2\",\"name\":\"Looper 2\"},"
+   "{\"level\":\"looper\",\"name\":\"Looper\"},"
    "{\"level\":\"user\",\"name\":\"User Slots\"},{\"level\":\"config\",\"name\":\"Config\"}]},"
  "\"user\":{\"name\":\"User Slots\",\"knobs\":[\"user_slot\",\"user_op\"],"
    "\"params\":[{\"key\":\"user_slot\",\"name\":\"User Slot\"},{\"key\":\"user_op\",\"name\":\"User Op\"}]},"
@@ -122,22 +113,17 @@ static const char *UI_HIERARCHY_JSON =
  "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"shimmer\",\"width\",\"mod_depth\",\"mod_rate\"],"
    "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"shimmer\",\"name\":\"Shimmer\"},{\"key\":\"width\",\"name\":\"Width\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
  "\"motion\":{\"name\":\"Motion\",\"knobs\":[\"mot_target\",\"mot_rate\",\"mot_depth\",\"mot_shape\"],"
-   "\"params\":[{\"key\":\"mot_target\",\"name\":\"Mod Dest\"},{\"key\":\"mot_rate\",\"name\":\"Mot Rate\"},{\"key\":\"mot_depth\",\"name\":\"Mot Dep\"},{\"key\":\"mot_shape\",\"name\":\"Wave\"}]},"
+   "\"params\":[{\"key\":\"mot_target\",\"name\":\"Mot Dest\"},{\"key\":\"mot_rate\",\"name\":\"Mot Rate\"},{\"key\":\"mot_depth\",\"name\":\"Mot Dep\"},{\"key\":\"mot_shape\",\"name\":\"Wave\"}]},"
  "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"evo_range\",\"dice\"],"
    "\"params\":[{\"key\":\"evolve\",\"name\":\"Evolve\"},{\"key\":\"evo_range\",\"name\":\"Range\"},{\"key\":\"dice\",\"name\":\"Dice\"}]},"
  "\"perform\":{\"name\":\"Perform\",\"knobs\":[\"reverse\",\"hold\",\"hold_style\",\"duck\"],"
-   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Md\"},{\"key\":\"duck\",\"name\":\"Duck\"}]},"
+   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Mode\"},{\"key\":\"duck\",\"name\":\"Duck\"}]},"
  "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\"],"
    "\"params\":[{\"key\":\"looper_on\",\"name\":\"Looper\"},{\"key\":\"transport\",\"name\":\"Transport\"},"
-   "{\"key\":\"loop_reverse\",\"name\":\"Lp Rev\"},{\"key\":\"loop_level\",\"name\":\"Lp Level\"},"
-   "{\"key\":\"loop_fade\",\"name\":\"Lp Fade\"},{\"key\":\"loop_speed\",\"name\":\"Lp Speed\"},"
-   "{\"key\":\"loop_route\",\"name\":\"Route\"},{\"key\":\"loop_quantize\",\"name\":\"Quantize\"}]},"
- "\"looper2\":{\"name\":\"Looper 2\",\"knobs\":[\"loop_fademode\",\"loop_order\",\"loop_only\",\"loop_burst\"],"
-   "\"params\":[{\"key\":\"loop_fademode\",\"name\":\"Fade\"},{\"key\":\"loop_order\",\"name\":\"Op\"},"
-   "{\"key\":\"loop_only\",\"name\":\"Lp Only\"},{\"key\":\"loop_burst\",\"name\":\"Burst\"}]},"
- "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\",\"bypass_style\"],"
+   "{\"key\":\"loop_level\",\"name\":\"Level\"},{\"key\":\"loop_speed\",\"name\":\"Speed\"}]},"
+ "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\"],"
    "\"params\":[{\"key\":\"input_mode\",\"name\":\"Input\"},{\"key\":\"input_gain\",\"name\":\"In Gain\"},"
-   "{\"key\":\"bypass\",\"name\":\"Bypass\"},{\"key\":\"bypass_style\",\"name\":\"Byp Mode\"}]}"
+   "{\"key\":\"bypass\",\"name\":\"Bypass\"}]}"
 "}}";
 
 /* parse an enum value: accept the option string OR a numeric index */
@@ -227,6 +213,24 @@ static void apply_preset(wb_t *w, int idx) {
 }
 
 /* ---- looper transport ---- */
+/* Lazily allocate the ~21MB looper buffers the first time the looper is actually used. Called
+ * only from set_param handlers (transport REC / user load) which run on the control thread, NEVER
+ * from process_block — so this malloc is realtime-safe. Idle instances never pay the RAM. */
+static int wb_loop_ensure(wb_t *w) {
+    if (w->lp_bl) return 1;
+    int lcap = (int)(WB_LOOP_SEC * WB_SR);
+    w->lp_bl = (int16_t*)calloc(lcap, sizeof(int16_t));
+    w->lp_br = (int16_t*)calloc(lcap, sizeof(int16_t));
+    w->lp_ol = (int16_t*)calloc(lcap, sizeof(int16_t));
+    w->lp_or = (int16_t*)calloc(lcap, sizeof(int16_t));
+    if (!w->lp_bl || !w->lp_br || !w->lp_ol || !w->lp_or) {
+        free(w->lp_bl); free(w->lp_br); free(w->lp_ol); free(w->lp_or);
+        w->lp_bl = w->lp_br = w->lp_ol = w->lp_or = NULL;
+        return 0;
+    }
+    wb_looper_attach(&w->looper, w->lp_bl, w->lp_br, w->lp_ol, w->lp_or, lcap);
+    return 1;
+}
 static void looper_close(wb_t *w) {
     int frames = w->looper.writepos;
     if (w->loop_quantize) {
@@ -245,6 +249,7 @@ static void transport(wb_t *w, int cmd) {
     char path[576];
     switch (cmd) {
         case WB_T_REC:
+            if (!wb_loop_ensure(w)) break;   /* allocate buffers on first record */
             if (w->loop_burst && w->looper.frames > 0) wb_looper_clear(&w->looper);
             if (w->looper.state == WB_LP_IDLE && w->looper.frames == 0)
                 wb_looper_rec_start(&w->looper);
@@ -266,8 +271,8 @@ static void transport(wb_t *w, int cmd) {
         case WB_T_ERASE: wb_looper_clear(&w->looper); break;
         case WB_T_UNDO:  wb_looper_undo(&w->looper); break;
         case WB_T_SAVE:  loop_path(w,path,sizeof(path)); wb_looper_save(&w->looper, path); break;
-        case WB_T_LOAD:  loop_path(w,path,sizeof(path)); wb_looper_load(&w->looper, path);
-                         w->looper_on = 1; break;
+        case WB_T_LOAD:  if (!wb_loop_ensure(w)) break; loop_path(w,path,sizeof(path));
+                         wb_looper_load(&w->looper, path); w->looper_on = 1; break;
         default: break;
     }
 }
@@ -311,6 +316,7 @@ static void user_load(wb_t *w) {
         if (n) wb_params_set(w, "state", js);
     }
     user_path(w, w->user_slot, "wav", wp, sizeof wp);
+    wb_loop_ensure(w);                                          /* need buffers to load into */
     if (wb_looper_load(&w->looper, wp) == 0) w->looper_on = 1;  /* loop present -> arm */
 }
 static void user_clear(wb_t *w) {
