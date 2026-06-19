@@ -576,9 +576,10 @@ function presetReadback(){
 }
 function applyPreset(i){
  P.preset.v=i;
- if(DEMO.m){ try{DEMO.m.ccall('wbw_set',null,['string','string'],['preset',PRESETS[i].n]);}catch(e){} presetReadback(); }
- if(Bridge.mode==="live") pushToDevice('preset');   /* hardware runs its own apply_preset */
- notify("*");
+ if(Bridge.mode==="live"){ pushToDevice('preset'); notify("*"); return; }  /* hardware runs apply_preset + reports back — no WASM */
+ /* demo/manual: the WASM is the oracle. Load it lazily (first paint stays fast; the Move never gets here). */
+ const oracle=()=>{ try{DEMO.m.ccall('wbw_set',null,['string','string'],['preset',PRESETS[i].n]);}catch(e){} presetReadback(); notify("*"); };
+ if(DEMO.m) oracle(); else { notify("*"); demoEnsure().then(ok=>{ if(ok) oracle(); }); }
 }
 
 /* =====================================================================
@@ -635,7 +636,8 @@ function cacheKey(slot,comp){ return slot+"/"+comp; }
 function seedFromCache(slot,comp){ const c=Bridge.slotState[cacheKey(slot,comp)]; if(!c)return;
  Bridge.applying=true; for(const k in c) ingest(k,c[k]); Bridge.applying=false; notify("*"); }
 function selectDemo(){ Bridge.mode="demo"; Bridge.slot=null; Bridge.comp=null; Bridge.userPicked=true;
- refreshTargets(); setStatus("demo","demo · in-browser"); }
+ refreshTargets(); setStatus("demo","demo · in-browser");
+ demoEnsure().then(ok=>{ if(ok) applyPreset(P.preset.v); });   /* user chose Demo on the Move -> load the engine now */ }
 function selectInstance(i){ const x=Bridge.instances[i]; if(!x)return; Bridge.userPicked=true;
  Bridge.slot=x.slot; Bridge.comp=x.comp; Bridge.mode="live";
  seedFromCache(x.slot,x.comp);                                  /* instant: show cached values now */
@@ -655,7 +657,7 @@ function connectLive(host){
  ws.onopen=()=>{ for(let s=0;s<8;s++)ws.send(JSON.stringify({type:"subscribe",slot:s}));
    clearTimeout(Bridge.scanT);
    Bridge.scanT=setTimeout(()=>{ if(Bridge.mode!=="live"&&!Bridge.instances.length) setStatus("demo","no War Bells in a slot — staying in demo (load it as an FX, then Connect)"); }, 30000); };
- ws.onerror=()=>setStatus("err","connection failed · "+host);
+ ws.onerror=()=>{ if(Bridge.mode!=="live"){ selectDemo(); setStatus("demo","no Move at "+host+" — demo mode (Connect to retry)"); } };
  ws.onclose=()=>{ if(Bridge.mode==="live"){ selectDemo(); setStatus("err","disconnected — Connect to retry"); } };
  ws.onmessage=(e)=>{let m;try{m=JSON.parse(e.data);}catch(_){return;}
    if(m.type==="slot_info"){
@@ -963,10 +965,11 @@ if(!tryEmbedded()){
  else connectLive(defaultHost());
 }
 
-/* Preset oracle: load the real engine at startup (no audio) and canonicalize the selected preset straight
-   from the C source, so the manual/demo always shows exact device values and can never drift. (Demo/manual
-   only — in live mode the hardware is the source of truth and the bridge supplies state.) */
-demoEnsure().then(ok=>{ if(ok && Bridge.mode!=="live") applyPreset(P.preset.v); });
+/* Preset oracle, LAZY: only load the WASM (no audio) once we're sure we're NOT controlling hardware, and
+   only after first paint — so the manual loads instantly and the Move (live) never instantiates the engine
+   at all. In demo/manual it canonicalizes the preset from the real C source (so values can't drift). The
+   ~0.8s wait lets connectLive() resolve to live-or-not first. */
+setTimeout(()=>{ if(Bridge.mode!=="live") demoEnsure().then(ok=>{ if(ok && Bridge.mode!=="live") applyPreset(P.preset.v); }); }, 800);
 </script>
 </body>
 </html>

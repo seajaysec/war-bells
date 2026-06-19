@@ -54,8 +54,9 @@ fi
 cp src/module.json "$OUT/"
 cp ui_chain.js "$OUT/"
 [ -f help.json ] && cp help.json "$OUT/"
-[ -f web_ui.html ] && cp web_ui.html "$OUT/"
-[ -f wbw.js ] && cp wbw.js "$OUT/"
+# ship the SINGLE-FILE web app (wbw.js inlined by build_web.sh) as the module's web_ui.html
+if [ -f docs/index.html ]; then cp docs/index.html "$OUT/web_ui.html"
+elif [ -f web_ui.html ]; then cp web_ui.html "$OUT/"; [ -f wbw.js ] && cp wbw.js "$OUT/"; fi
 
 tar -C "$ROOT/dist" -czf "$ROOT/dist/${MOD_ID}-module.tar.gz" "$MOD_ID"
 ls -lh "$OUT/${MOD_ID}.so" "$ROOT/dist/${MOD_ID}-module.tar.gz"

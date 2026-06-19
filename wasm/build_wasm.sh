@@ -14,6 +14,6 @@ emcc wasm/wbw.c src/dsp/war_bells.c src/dsp/effects.c src/dsp/params.c \
   -sALLOW_MEMORY_GROWTH=1 -sSINGLE_FILE=1 -sENVIRONMENT=web \
   -o wbw.js
 
-cp -f wbw.js docs/wbw.js
 ls -lh wbw.js
-echo "built wbw.js (+ copied to docs/) — self-contained WASM engine"
+echo "built wbw.js — self-contained WASM engine"
+bash scripts/build_web.sh   # inline wbw.js into the single-file docs/index.html (one to ship)
