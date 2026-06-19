@@ -1,0 +1,9 @@
+# Files synced by skill-update.sh (canonical: github.com/seajaysec/war-bells)
+SKILL.md
+references/principles.md
+references/gotchas.md
+references/techniques.md
+references/fidelity-guard.md
+snippets/dsp_safety.h
+scripts/skill-update.sh
+files.txt

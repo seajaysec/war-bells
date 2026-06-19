@@ -1,0 +1,11 @@
+# Files synced by skill-update.sh (canonical: github.com/seajaysec/war-bells)
+SKILL.md
+templates/wb_metrics.h
+templates/checkstress.c
+templates/run_tests.snippet.sh
+references/metrics.md
+references/self-improvement.md
+scripts/analyze.py
+scripts/ratchet.sh
+scripts/skill-update.sh
+files.txt

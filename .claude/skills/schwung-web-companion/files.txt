@@ -1,0 +1,7 @@
+# Files synced by skill-update.sh (canonical: github.com/seajaysec/war-bells)
+SKILL.md
+references/dualmode.md
+references/single-source-presets.md
+references/build-deploy.md
+scripts/skill-update.sh
+files.txt
