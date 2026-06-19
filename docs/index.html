@@ -157,6 +157,19 @@
   .ictl input[type=range]{width:96px;accent-color:var(--teal)}
   .ictl select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:7px;font-size:12px;padding:2px 4px}
   .ictl .iv{font:11px ui-monospace,monospace;color:var(--oled);min-width:40px;text-align:right}
+  /* touch: render root knobs as sliders instead of vertical-drag dials */
+  .knob .kbrange{width:100%;accent-color:var(--teal);margin:16px 0 4px}
+  /* effects: family accordion + editable cards */
+  .famchips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+  .famchip{flex:1;min-width:130px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--panel);
+    color:var(--ink);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;font:inherit}
+  .famchip.active{border-color:var(--fc);box-shadow:0 0 0 1px var(--fc)}
+  .famchip .fammeta{font-size:11px;color:var(--dim)}
+  @media(max-width:560px){.famchip{flex-basis:calc(50% - 4px)}}
+  .fx.sel{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal)}
+  .cardctl{margin-top:10px;border-top:1px solid var(--line);padding-top:9px;display:flex;flex-direction:column;gap:6px}
+  .cardctl .ictl{display:flex;width:100%;border-radius:9px}
+  .cardctl .ictl input[type=range]{flex:1;width:auto}
   table.cc{width:100%;border-collapse:collapse;font-size:13.5px}
   table.cc th,table.cc td{border:1px solid var(--line);padding:6px 9px;text-align:left}
   table.cc th{color:var(--amber)}
@@ -232,11 +245,10 @@
 
 <section id="effects">
   <h2><span class="num">02</span>The eleven effects</h2>
-  <p class="lead">Four families, each with four named variations. Tap a card to load it.</p>
-  <div class="grid g4" id="catLegend" style="margin:6px 0 14px"></div>
-  <div class="grid g2" id="fxGrid"></div>
-  <div class="tip">Pick effect + variation here too:
-   <span class="ictl" data-k="effect"></span> <span class="ictl" data-k="variation"></span></div>
+  <p class="lead">Four families. Tap a family to see its effects; tap an effect to load it — then tweak its
+  variables right on the card, just like the knobs above.</p>
+  <div id="famChips" class="famchips"></div>
+  <div id="famDetail"></div>
   <h3>See it: a grain cloud</h3>
   <p>This visualiser reacts to <b>Activity</b> (how many grains), <b>Shape</b> (their size) and the
   effect family's colour. Twist the knobs above (or the inline ones) and watch.</p>
@@ -750,26 +762,38 @@ Object.entries(PAGES).forEach(([id,pg])=>{const b=document.createElement("button
  b.onclick=()=>{curPage=id;renderTabs();renderKnobs();};b.dataset.id=id;tabsEl.appendChild(b);});
 function renderTabs(){[...tabsEl.children].forEach(b=>b.classList.toggle("on",b.dataset.id===curPage));}
 const knobRow=document.getElementById("knobRow");
+/* knobs on mouse (pointer:fine), sliders on touch (pointer:coarse). ?touch forces sliders for testing.
+   Built once per page; syncKnobs() updates values on change so a slider isn't destroyed mid-drag. */
+const COARSE = matchMedia("(pointer:coarse)").matches || location.search.indexOf("touch")>=0;
 function renderKnobs(){const pg=PAGES[curPage];knobRow.innerHTML="";
  for(let i=0;i<8;i++){const key=pg.knobs[i];const w=document.createElement("div");w.className="knob";
    if(!key){const d=document.createElement("div");d.className="dial empty";const lab=document.createElement("div");
      lab.className="lab";w.append(d,lab);knobRow.appendChild(w);continue;}
    const p=P[key],lab=document.createElement("div");lab.className="lab";lab.textContent=p.name;
-   if(p.t==="enum"||p.t==="var"){            /* components are dropdowns, not knobs */
+   if(p.t==="enum"||p.t==="var"){            /* components are dropdowns either way */
      const sel=document.createElement("select");sel.className="kbsel";
-     const opts=(p.t==="var")?EFFECTS[P.effect.v].vl:p.o;
-     opts.forEach((o,idx)=>{const op=document.createElement("option");op.value=idx;op.textContent=o;sel.appendChild(op);});
-     sel.value=p.v;sel.onchange=()=>setVal(key,+sel.value);
-     w.append(sel,lab);
-   }else{
+     const fill=()=>{const opts=(p.t==="var")?EFFECTS[P.effect.v].vl:p.o;sel.innerHTML="";
+       opts.forEach((o,idx)=>sel.appendChild(new Option(o,idx)));sel.value=p.v;};
+     fill();sel.onchange=()=>setVal(key,+sel.value);w.append(sel,lab);
+     w._sync=()=>{if(p.t==="var"&&sel.options.length!==EFFECTS[P.effect.v].vl.length)fill();sel.value=p.v;};
+   }else if(COARSE){                          /* touch: horizontal slider, no vertical-drag */
+     const r=document.createElement("input");r.type="range";r.className="kbrange";
+     const min=p.min??0,max=(p.t==="pct"?1:p.max),step=(p.t==="pct"?0.02:p.t==="int"?1:p.t==="x"?0.05:1);
+     r.min=min;r.max=max;r.step=step;r.value=p.v;
+     const val=document.createElement("div");val.className="val";val.textContent=fmt(key);
+     r.oninput=()=>setVal(key,parseFloat(r.value));w.append(r,lab,val);
+     w._sync=()=>{if(document.activeElement!==r)r.value=p.v;val.textContent=fmt(key);};
+   }else{                                     /* mouse: the knob */
      const d=document.createElement("div");d.className="dial";
      const ind=document.createElement("div");ind.className="ind";d.appendChild(ind);
      ind.style.transform=`translateX(-50%) rotate(${-140+frac(key)*280}deg)`;
      const val=document.createElement("div");val.className="val";val.textContent=fmt(key);
      attachDial(d,key);w.append(d,lab,val);
+     w._sync=()=>{ind.style.transform=`translateX(-50%) rotate(${-140+frac(key)*280}deg)`;val.textContent=fmt(key);};
    }
    knobRow.appendChild(w);}
 }
+function syncKnobs(){for(const w of knobRow.children)if(w._sync)w._sync();}
 function attachDial(el,key){let last=0,active=false,acc=0;
  const s=e=>{active=true;last=(e.touches?e.touches[0].clientY:e.clientY);acc=0;e.preventDefault();};
  const m=e=>{if(!active)return;const y=(e.touches?e.touches[0].clientY:e.clientY);acc+=last-y;last=y;
@@ -780,17 +804,33 @@ function attachDial(el,key){let last=0,active=false,acc=0;
  window.addEventListener("mouseup",u);window.addEventListener("touchend",u);
  el.addEventListener("wheel",e=>{e.preventDefault();bump(key,e.deltaY<0?1:-1);},{passive:false});
 }
-/* effect cards + legend */
-const fxGrid=document.getElementById("fxGrid");
-EFFECTS.forEach((e,i)=>{const d=document.createElement("div");d.className="fx";
- d.innerHTML=`<div class="nm"><span class="catdot" style="background:${CATS[e.cat].c}"></span>${e.n}</div>
-  <div class="mc">${e.cat} · Activity = ${e.act}</div>
-  <ol>${e.v.map((t,k)=>`<li><b>${e.vl[k]}</b> — ${t}</li>`).join("")}</ol>`;
- d.onclick=()=>setVal("effect",i);fxGrid.appendChild(d);});
-const leg=document.getElementById("catLegend");
-Object.entries(CATS).forEach(([k,o])=>{const s=document.createElement("div");s.className="panel";
- s.style.padding="10px";s.innerHTML=`<span class="catdot" style="background:${o.c}"></span><b>${k}</b>
-  <div class="muted">${o.d}</div>`;leg.appendChild(s);});
+/* effect families: accordion of family chips -> child cards; the selected card is inline-editable. */
+const famChips=document.getElementById("famChips"),famDetail=document.getElementById("famDetail");
+let openFam=null,lastEffectRender=-1;
+function renderEffects(){
+ if(!openFam)openFam=EFFECTS[P.effect.v].cat;
+ famChips.innerHTML="";
+ Object.entries(CATS).forEach(([fam,o])=>{const c=document.createElement("button");
+   c.className="famchip"+(fam===openFam?" active":"");c.style.setProperty("--fc",o.c);
+   c.innerHTML=`<span><span class="catdot" style="background:${o.c}"></span><b>${fam}</b></span>`+
+     `<span class="fammeta">${o.d}</span>`;
+   c.onclick=()=>{openFam=fam;renderEffects();};famChips.appendChild(c);});
+ famDetail.innerHTML="";
+ const grid=document.createElement("div");grid.className="grid g3";
+ EFFECTS.forEach((e,i)=>{ if(e.cat!==openFam)return;
+   const sel=(i===P.effect.v),d=document.createElement("div");d.className="fx"+(sel?" sel":"");
+   let h=`<div class="nm"><span class="catdot" style="background:${CATS[e.cat].c}"></span>${e.n}</div>`+
+     `<div class="mc">Activity = ${e.act}</div>`+
+     `<ol>${e.v.map((t,k)=>`<li><b>${e.vl[k]}</b> — ${t}</li>`).join("")}</ol>`;
+   if(sel)h+=`<div class="cardctl"><span class="ictl" data-k="variation"></span>`+
+     `<span class="ictl" data-k="activity"></span><span class="ictl" data-k="shape"></span>`+
+     `<span class="ictl" data-k="mix"></span><span class="ictl" data-k="space"></span></div>`;
+   d.innerHTML=h;
+   d.onclick=(ev)=>{if(ev.target.closest(".cardctl"))return;if(i!==P.effect.v)setVal("effect",i);};
+   grid.appendChild(d);});
+ famDetail.appendChild(grid);
+ hydrateInline();lastEffectRender=P.effect.v;
+}
 /* reverb + preset doc grids */
 const revGrid=document.getElementById("revGrid");
 REVERBS.forEach(([n,d],i)=>{const el=document.createElement("div");el.className="fx";
@@ -892,8 +932,9 @@ function syncInline(){document.querySelectorAll(".ictl[data-k]").forEach(el=>{if
 })();
 
 /* ---------- global re-render on store change ---------- */
-subs.add(()=>{renderPickers();renderKnobs();syncInline();});
-function renderAll(){renderPickers();renderTabs();renderKnobs();hydrateInline();}
+subs.add(()=>{renderPickers();syncKnobs();syncInline();
+ if(P.effect.v!==lastEffectRender){openFam=EFFECTS[P.effect.v].cat;renderEffects();}});
+function renderAll(){renderPickers();renderTabs();renderKnobs();renderEffects();hydrateInline();}
 
 /* ---------- theme ---------- */
 const themeBtn=document.getElementById("themeBtn");
@@ -925,9 +966,12 @@ hostInput.addEventListener("keydown",e=>{ if(e.key==="Enter")connectLive(hostInp
 const synthbar=document.querySelector(".synthbar"),collapseBtn=document.getElementById("collapseBtn"),cnow=document.getElementById("collapsedNow");
 let manualCollapse=null;
 function setCollapsed(c){ synthbar.classList.toggle("collapsed",c); collapseBtn.textContent=c?"▸":"▾"; }
-collapseBtn.onclick=()=>{ const c=!synthbar.classList.contains("collapsed"); setCollapsed(c); };
-/* no auto-collapse-on-scroll — it fought the user's scroll (jumpy/unpredictable, worse on iOS). The synth
-   panel just scrolls away normally; the ▾ button collapses it manually if wanted. */
+collapseBtn.onclick=()=>{ const c=!synthbar.classList.contains("collapsed"); manualCollapse=c; setCollapsed(c); };
+/* Auto-collapse-on-scroll ONLY on mouse/desktop (pointer:fine) — it's nice there but fought touch scrolling
+   (jumpy on iOS). On touch the panel just scrolls away; the ▾ button collapses it manually either way. */
+if(!COARSE) window.addEventListener("scroll",()=>{ if(manualCollapse!==null)return; const y=window.scrollY||0;
+  if(y>170 && !synthbar.classList.contains("collapsed")) setCollapsed(true);
+  else if(y<70 && synthbar.classList.contains("collapsed")) setCollapsed(false); },{passive:true});
 subs.add(()=>{ const e=EFFECTS[P.effect.v]; cnow.textContent="· "+e.n+"·"+e.vl[P.variation.v]; });
 
 /* ---------- demo audio: the REAL War Bells DSP, compiled to WASM ----------
