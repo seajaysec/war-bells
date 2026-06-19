@@ -73,6 +73,7 @@ typedef struct wb {
     wb_transient_t trans;
 
     /* space delay (feedback comb) */
+    wb_tlim_t   tlim_l, tlim_r;       /* master tape-ceiling limiter state (per channel) */
     float spdl_l[WB_SPDL_LEN], spdl_r[WB_SPDL_LEN];
     int   spdl_w; float space_dtime, space_fb;
     /* tape/feedback engine state (Sustain build + Warp pitch): smoothed read offset, loop tone LPF,

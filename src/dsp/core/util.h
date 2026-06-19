@@ -32,15 +32,25 @@ static inline float wb_softclip(float x) {
     return x - (0.148148f * x * x * x); /* x - x^3 * (1/6.75) */
 }
 
-/* master output limiter: transparent below 0.8, soft knee above, asymptotes to <1.0 so the output
- * can NEVER hard-clip (no harsh digital clipping no matter how hot the patch/feedback gets).
- * Cheap: a branch skips it entirely for normal levels. */
-static inline float wb_limit(float x) {
+/* master "tape ceiling" — a warm program-dependent limiter, the cinematic way to handle energy
+ * above the rails. Below threshold it's transparent. As it pushes, a peak envelope (fast attack,
+ * slow release) rides the gain down (so washes BREATHE instead of buzzing), the highs gently roll
+ * off (warmer/darker the harder it works — tape/optical character, never brighter), and a soft
+ * asymptote guarantees it can never hard-clip. Per-channel state. */
+typedef struct { float env, lp; } wb_tlim_t;
+static inline float wb_tape_limit(wb_tlim_t *t, float x) {
     float a = x < 0.0f ? -x : x;
-    if (a <= 0.8f) return x;
-    float s = x < 0.0f ? -1.0f : 1.0f;
-    float e = a - 0.8f;
-    return s * (0.8f + 0.2f * (e / (e + 0.2f)));   /* 0.8->0.8, ->1.0 asymptotically */
+    t->env += (a - t->env) * (a > t->env ? 0.05f : 0.00015f);   /* fast attack ~0.5ms, slow release */
+    float g = 1.0f;
+    if (t->env > 0.6f) g = (0.6f + (t->env - 0.6f) * 0.3f) / t->env;   /* gentle glue above 0.6 (~3:1) */
+    float y = x * g;
+    float gr = 1.0f - g;                                          /* 0 clean .. how hard it's working */
+    float coef = 1.0f - gr * 1.3f; if (coef < 0.2f) coef = 0.2f;  /* darker as it works (tape HF loss) */
+    t->lp += (y - t->lp) * coef;
+    y += (t->lp - y) * (gr * 0.9f);                              /* blend the warm/dark version in by work */
+    float s = y < 0.0f ? -1.0f : 1.0f, ay = y < 0.0f ? -y : y;
+    if (ay > 0.8f) ay = 0.8f + 0.2f * ((ay - 0.8f) / ((ay - 0.8f) + 0.25f));   /* soft ceiling <1.0 */
+    return s * ay;
 }
 
 /* bit-crush a -1..1 sample to `bits` bit depth (>=24 ~ transparent) */
