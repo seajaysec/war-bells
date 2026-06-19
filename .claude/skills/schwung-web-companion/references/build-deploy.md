@@ -30,12 +30,17 @@ the device.
 - It's a **static asset**: to update just the web UI, `scp` it over — **no Move restart needed** (unlike the
   `.so`). Restart only for native/DSP changes.
 
-## iOS scroll gotcha
-A `position:sticky` element TALLER than the viewport traps touch scrolling on iOS Safari. If your top panel is
-tall on a phone, make it static on small screens:
-```css
-@media (max-width:820px){ .synthbar{ position:static } }
-```
+## Mobile scroll gotchas (these all bit this UI)
+- **Tall sticky traps touch scroll on iOS:** a `position:sticky` element TALLER than the viewport pins and
+  iOS can't scroll past it. Make it static on small screens: `@media (max-width:820px){ .synthbar{position:static} }`.
+- **Don't auto-hide/collapse on scroll.** A scroll listener that collapses a top panel as the user scrolls
+  *fights the scroll* — jumpy and unpredictable, worst on iOS (the layout shift moves the scroll position).
+  People know how to scroll. Drop the auto behavior; keep a manual collapse button if you want one.
+- **Horizontal scroll = something wider than the viewport.** Usual cause: a CSS grid that doesn't collapse on
+  mobile — especially an **inline `grid-template-columns` that overrides your media query**, or grid items that
+  won't shrink below content (use `minmax(0,1fr)` or a `@media{...1fr}` rule). Belt-and-suspenders:
+  `html{overflow-x:clip}` (clip, not hidden — keeps `position:sticky` working). Find the culprit by scanning
+  for elements whose `getBoundingClientRect().right > clientWidth`.
 
 ## Install / discoverability
 Add an "Install" section to the manual: catalog/Module Store path ("search the module, once listed") + manual
