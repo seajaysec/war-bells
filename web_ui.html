@@ -42,7 +42,7 @@
     --ink:#1a1d27; --dim:#5b6479; --oled:#0b3a30; --oledbg:#dff3ea; --shadow:0 18px 44px rgba(20,28,60,.14);
   }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;overflow-x:clip}   /* never scroll horizontally (clip = keeps position:sticky working) */
   body{margin:0;background:
       radial-gradient(1200px 600px at 78% -12%,color-mix(in srgb,var(--violet) 16%,transparent) 0,transparent 60%),
       radial-gradient(900px 500px at 5% 0%,color-mix(in srgb,var(--teal) 12%,transparent) 0,transparent 55%),
@@ -233,7 +233,7 @@
 <section id="effects">
   <h2><span class="num">02</span>The eleven effects</h2>
   <p class="lead">Four families, each with four named variations. Tap a card to load it.</p>
-  <div class="grid" id="catLegend" style="grid-template-columns:repeat(4,1fr);margin:6px 0 14px"></div>
+  <div class="grid g4" id="catLegend" style="margin:6px 0 14px"></div>
   <div class="grid g2" id="fxGrid"></div>
   <div class="tip">Pick effect + variation here too:
    <span class="ictl" data-k="effect"></span> <span class="ictl" data-k="variation"></span></div>
@@ -921,10 +921,9 @@ hostInput.addEventListener("keydown",e=>{ if(e.key==="Enter")connectLive(hostInp
 const synthbar=document.querySelector(".synthbar"),collapseBtn=document.getElementById("collapseBtn"),cnow=document.getElementById("collapsedNow");
 let manualCollapse=null;
 function setCollapsed(c){ synthbar.classList.toggle("collapsed",c); collapseBtn.textContent=c?"▸":"▾"; }
-collapseBtn.onclick=()=>{ const c=!synthbar.classList.contains("collapsed"); manualCollapse=c; setCollapsed(c); };
-window.addEventListener("scroll",()=>{ if(manualCollapse!==null)return; const y=window.scrollY||0;
-  if(y>170 && !synthbar.classList.contains("collapsed")) setCollapsed(true);
-  else if(y<70 && synthbar.classList.contains("collapsed")) setCollapsed(false); },{passive:true});
+collapseBtn.onclick=()=>{ const c=!synthbar.classList.contains("collapsed"); setCollapsed(c); };
+/* no auto-collapse-on-scroll — it fought the user's scroll (jumpy/unpredictable, worse on iOS). The synth
+   panel just scrolls away normally; the ▾ button collapses it manually if wanted. */
 subs.add(()=>{ const e=EFFECTS[P.effect.v]; cnow.textContent="· "+e.n+"·"+e.vl[P.variation.v]; });
 
 /* ---------- demo audio: the REAL War Bells DSP, compiled to WASM ----------
