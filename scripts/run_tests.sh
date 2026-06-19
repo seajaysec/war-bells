@@ -25,5 +25,17 @@ for t in tests/test_*.c; do
   if "$OBJ/$name"; then echo "OK  $name"; else echo "FAIL $name"; fail=1; fi
 done
 
+# --- audit stage: every diagnostic probe in scripts/check*.c runs on every test run ---
+# checkstability exits non-zero on a real failure (runaway to the rails) and gates the build;
+# checkpresets/checklimit print level/brightness diagnostics for the record.
+for a in scripts/check*.c; do
+  [ -e "$a" ] || continue
+  name="audit-$(basename "$a" .c)"
+  $CC $OPT $INC -c "$a" -o "$OBJ/$name.o"
+  $CC "$OBJ/$name.o" $DSP_OBJS -lm -o "$OBJ/$name"
+  echo "=== $name ==="
+  if "$OBJ/$name"; then echo "OK  $name"; else echo "FAIL $name"; fail=1; fi
+done
+
 rm -rf "$OBJ"
 [ "$fail" = 0 ] && echo "all tests passed." || { echo "TESTS FAILED"; exit 1; }

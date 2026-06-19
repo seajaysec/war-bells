@@ -232,13 +232,16 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
                  * cost low so it stays solid at high grain load. */
                 static const float SHIM_RATIO[4] = { 1.0f, 2.0f, 0.5f, 1.5f }; /* -,oct+,oct-,5th */
                 float rt = SHIM_RATIO[w->shimmer & 3];
-                float fb = w->shim_m * 0.45f;
-                wb_reverb_process(&w->reverb, sigL + sdL*0.5f + fb, sigR + sdR*0.5f + fb, &rvL, &rvR);
+                /* reverb SEND headroom (0.5): continuous input otherwise integrates the room +
+                 * shimmer feedback up to the rails over seconds (runaway). Shimmer regen lowered
+                 * 0.45->0.3 so its loop settles to a steady state below the ceiling, not at it. */
+                float fb = w->shim_m * 0.18f;
+                wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f + fb, (sigR + sdR*0.5f)*0.5f + fb, &rvL, &rvR);
                 float sh = wb_pshift_process(&w->shimM, 0.5f*(rvL+rvR), rt);
                 if (sh > 1.5f) sh = 1.5f; else if (sh < -1.5f) sh = -1.5f;   /* hard clamp the feedback */
                 w->shim_m = sh;
             } else {
-                wb_reverb_process(&w->reverb, sigL + sdL*0.5f, sigR + sdR*0.5f, &rvL, &rvR);
+                wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f, (sigR + sdR*0.5f)*0.5f, &rvL, &rvR);
                 w->shim_m = 0.0f;
             }
             /* gain-staging: delay + reverb are summed, so scale the pair (equally — preserves their
