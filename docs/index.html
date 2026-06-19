@@ -580,7 +580,9 @@ function presetReadback(){
 }
 function applyPreset(i){
  P.preset.v=i;
- if(Bridge.mode==="live"){ pushToDevice('preset'); notify("*"); return; }  /* hardware runs apply_preset + reports back — no WASM */
+ if(Bridge.mode==="live"){ pushToDevice('preset');                       /* hardware runs apply_preset... */
+   try{Bridge.ws.send(JSON.stringify({type:"subscribe",slot:Bridge.slot}));}catch(e){}  /* ...then ask for a fresh dump so the knobs reflect it */
+   notify("*"); return; }
  /* demo/manual: the WASM is the oracle. Load it lazily (first paint stays fast; the Move never gets here). */
  const oracle=()=>{ try{DEMO.m.ccall('wbw_set',null,['string','string'],['preset',PRESETS[i].n]);}catch(e){} presetReadback(); notify("*"); };
  if(DEMO.m) oracle(); else { notify("*"); demoEnsure().then(ok=>{ if(ok) oracle(); }); }
