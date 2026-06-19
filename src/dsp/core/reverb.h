@@ -24,6 +24,7 @@ typedef struct {
     wb_ap_t   al[WB_RV_APS],   ar[WB_RV_APS];
     float room_size, damping, width;
     float feedback, damp1, damp2;
+    int   eco;                /* Eco: run 4 combs instead of 8 (CPU mode, thinner tail) */
 } wb_reverb_t;
 
 static inline void wb_reverb_init(wb_reverb_t *v) {
@@ -70,11 +71,15 @@ static inline void wb_reverb_process(wb_reverb_t *v, float inL, float inR,
                                      float *outL, float *outR) {
     float input = (inL + inR) * 0.5f;
     float oL = 0.0f, oR = 0.0f;
-    for (int i = 0; i < WB_RV_COMBS; i++) {
+    /* Eco halves the comb bank (the memory-bound bulk of the reverb cost) — thinner tail, ~half
+     * the reverb CPU. Default (eco=0) runs the full 8 combs = unchanged sound. */
+    int nc = v->eco ? (WB_RV_COMBS / 2) : WB_RV_COMBS;
+    for (int i = 0; i < nc; i++) {
         oL += wb_comb_run(&v->cl[i], input, v->feedback, v->damp1, v->damp2);
         oR += wb_comb_run(&v->cr[i], input, v->feedback, v->damp1, v->damp2);
     }
-    oL *= 0.125f; oR *= 0.125f;
+    float norm = v->eco ? 0.25f : 0.125f;   /* 1/4 combs vs 1/8 — level-match across the toggle */
+    oL *= norm; oR *= norm;
     for (int i = 0; i < WB_RV_APS; i++) {
         oL = wb_ap_run(&v->al[i], oL);
         oR = wb_ap_run(&v->ar[i], oR);

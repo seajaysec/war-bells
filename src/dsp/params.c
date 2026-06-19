@@ -86,6 +86,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"input_mode\",\"name\":\"Input\",\"type\":\"enum\",\"options\":[\"Ster\",\"Mono\"]},"
 "{\"key\":\"input_gain\",\"name\":\"In Gain\",\"type\":\"float\",\"min\":0,\"max\":2,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"bypass\",\"name\":\"Bypass\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
+"{\"key\":\"eco\",\"name\":\"Eco CPU\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"user_slot\",\"name\":\"User Slot\",\"type\":\"int\",\"min\":1,\"max\":16,\"step\":1},"
 "{\"key\":\"user_op\",\"name\":\"User Op\",\"type\":\"enum\",\"options\":[\"Idle\",\"Save\",\"Load\",\"Del\"]}"
 "]";
@@ -121,9 +122,9 @@ static const char *UI_HIERARCHY_JSON =
  "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\"],"
    "\"params\":[{\"key\":\"looper_on\",\"name\":\"Looper\"},{\"key\":\"transport\",\"name\":\"Transport\"},"
    "{\"key\":\"loop_level\",\"name\":\"Level\"},{\"key\":\"loop_speed\",\"name\":\"Speed\"}]},"
- "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\"],"
+ "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\",\"eco\"],"
    "\"params\":[{\"key\":\"input_mode\",\"name\":\"Input\"},{\"key\":\"input_gain\",\"name\":\"In Gain\"},"
-   "{\"key\":\"bypass\",\"name\":\"Bypass\"}]}"
+   "{\"key\":\"bypass\",\"name\":\"Bypass\"},{\"key\":\"eco\",\"name\":\"Eco CPU\"}]}"
 "}}";
 
 /* parse an enum value: accept the option string OR a numeric index */
@@ -155,7 +156,7 @@ void wb_params_defaults(wb_t *w) {
     w->space = 0.15f; w->reverb_mode = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.4f;
     w->subdiv = 2; w->tempo_manual = 110.0f; w->tempo_src = 0;
-    w->hold = 0; w->hold_style = 0; w->reverse = 0; w->bypass = 0; w->bypass_style = 0;
+    w->hold = 0; w->hold_style = 0; w->reverse = 0; w->bypass = 0; w->bypass_style = 0; w->eco = 0;
     w->input_mono = 0; w->input_gain = 1.0f;
     w->looper_on = 0; w->loop_reverse = 0; w->loop_route = 0;
     w->loop_order = 0; w->loop_quantize = 0; w->loop_only = 0; w->loop_burst = 0;
@@ -376,6 +377,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"input_mode",&v)==0) w->input_mono=(int)v;
         if (json_f(val,"bypass",&v)==0) w->bypass=(int)v;
         if (json_f(val,"bypass_style",&v)==0) w->bypass_style=(int)v;
+        if (json_f(val,"eco",&v)==0) w->eco=(int)v;
         /* re-apply derived state (these are set by their own handlers normally) */
         w->looper.fade = 0.005f + w->loop_fade * 4.0f;
         w->looper.fademode = w->loop_fademode;
@@ -425,6 +427,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"reverse")==0)  { w->reverse = enum_parse(val,ONOFF,2); w->params_dirty=1; }
     else if (strcmp(key,"bypass")==0)   { w->bypass = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"bypass_style")==0){ w->bypass_style = enum_parse(val,BYPASS_OPTS,3); w->bypass_lag = BYPASS_LAG[w->bypass_style]; }
+    else if (strcmp(key,"eco")==0)      { w->eco = enum_parse(val,ONOFF,2); wb_apply_space(w); }
     else if (strcmp(key,"input_mode")==0){ w->input_mono = enum_parse(val,INPUT_OPTS,2); }
     else if (strcmp(key,"input_gain")==0){ w->input_gain = wb_clampf((float)atof(val),0,2); }
     else if (strcmp(key,"looper_on")==0){
@@ -487,6 +490,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"hold_style")==0)  return snprintf(buf,buf_len,"%s",HOLDSTYLE[w->hold_style]);
     if (strcmp(key,"reverse")==0)     return snprintf(buf,buf_len,"%s",ONOFF[w->reverse]);
     if (strcmp(key,"bypass")==0)      return snprintf(buf,buf_len,"%s",ONOFF[w->bypass]);
+    if (strcmp(key,"eco")==0)         return snprintf(buf,buf_len,"%s",ONOFF[w->eco]);
     if (strcmp(key,"bypass_style")==0)return snprintf(buf,buf_len,"%s",BYPASS_OPTS[w->bypass_style]);
     if (strcmp(key,"loop_burst")==0)  return snprintf(buf,buf_len,"%s",ONOFF[w->loop_burst]);
     if (strcmp(key,"input_mode")==0)  return snprintf(buf,buf_len,"%s",INPUT_OPTS[w->input_mono]);
@@ -515,7 +519,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"loop_reverse\":%d,\"loop_fade\":%.4f,\"loop_fademode\":%d,\"loop_route\":%d,\"loop_order\":%d,"
           "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
           "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
-          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f}",
+          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
@@ -523,7 +527,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
           w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
           w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
-          w->evolve,w->evo_range,w->duck,w->width);
+          w->evolve,w->evo_range,w->duck,w->width,w->eco);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

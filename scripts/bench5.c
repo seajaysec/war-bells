@@ -23,10 +23,12 @@ int main(void){
     S("mod_depth","0.0"); double noCho=meas(api,inst); S("mod_depth","0.6");
     S("activity","0.02"); double noGr=meas(api,inst); S("activity","0.7");
     S("space","0.0"); S("mod_depth","0.0"); S("activity","0.02"); double base=meas(api,inst);
+    S("space","0.9"); S("mod_depth","0.6"); S("activity","0.7"); S("eco","On"); double eco=meas(api,inst);
     printf("full              %6.1f us/block\n", full);
     printf("reverb+space cost %6.1f us  (full - space off)\n", full-noRev);
     printf("chorus cost       %6.1f us  (full - chorus off)\n", full-noCho);
     printf("grains cost(5v)   %6.1f us  (full - activity~0)\n", full-noGr);
     printf("baseline(io+dly+filt+1v) %6.1f us\n", base);
+    printf("ECO full          %6.1f us/block  (saves %.1f us, %.0f%%)\n", eco, full-eco, 100*(full-eco)/full);
     return 0;
 }

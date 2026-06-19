@@ -58,7 +58,9 @@
         " hold duck",
         "Looper: rec/play",
         "User Slots: save",
-        "Config: in, bypass"
+        "Config: in, bypass",
+        "Eco = lite reverb",
+        " (CPU for stacks)"
       ]
     },
     {

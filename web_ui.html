@@ -347,7 +347,10 @@
   <div class="grid g3">
     <div class="panel"><h3>Input</h3><span class="ictl" data-k="input_mode"></span>
       <span class="ictl" data-k="input_gain"></span></div>
-    <div class="panel"><h3>Bypass</h3><span class="ictl" data-k="bypass"></span></div>
+    <div class="panel"><h3>Bypass · Eco</h3><span class="ictl" data-k="bypass"></span>
+      <span class="ictl" data-k="eco"></span>
+      <p class="muted">Eco = lighter reverb (4 combs vs 8). Off by default; flip it on when you're
+      stacking several instances and need CPU back — thinner tail, ~13% less per instance.</p></div>
     <div class="panel"><h3>Tone extras</h3><span class="ictl" data-k="filter_res"></span>
       <span class="ictl" data-k="effect_vol"></span></div>
   </div>
@@ -464,6 +467,7 @@ const P={
  input_mode:{name:"Input",t:"enum",o:["Ster","Mono"],v:0},
  input_gain:{name:"In Gain",t:"x",v:1,min:0,max:2},
  bypass:{name:"Bypass",t:"enum",o:["Off","On"],v:0},
+ eco:{name:"Eco CPU",t:"enum",o:["Off","On"],v:0},
  bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
  shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
  width:{name:"Width",t:"pct",v:1},
@@ -487,7 +491,7 @@ const PAGES={
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
  looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed"]},
  user:{title:"User",knobs:["user_slot","user_op"]},
- config:{title:"Config",knobs:["input_mode","input_gain","bypass"]},
+ config:{title:"Config",knobs:["input_mode","input_gain","bypass","eco"]},
 };
 let curPage="root";
 

@@ -131,6 +131,16 @@ int main(void){
     CHECK("burst toggles", strcmp(sbuf,"On")==0);
     api->set_param(inst,"loop_burst","Off");
 
+    /* Eco CPU mode: toggles + the (thinner) reverb stays bounded */
+    api->set_param(inst,"space","0.9"); api->set_param(inst,"reverb_mode","Vast");
+    api->set_param(inst,"eco","On");
+    api->get_param(inst,"eco",sbuf,sizeof(sbuf));
+    CHECK("eco toggles On", strcmp(sbuf,"On")==0);
+    double reco=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); reco+=rms(buf,128);}
+    printf("  eco reverb rms=%.1f\n", reco/24);
+    CHECK("eco reverb stays bounded", reco/24 < 32760.0 && reco > 0.0);
+    api->set_param(inst,"eco","Off");
+
     /* timing defaults to Free (free-running, drifts) */
     { void *i2=api->create_instance("/tmp",NULL); char tb[16];
       api->get_param(i2,"tempo_src",tb,sizeof(tb));

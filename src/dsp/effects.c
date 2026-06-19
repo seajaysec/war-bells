@@ -97,6 +97,7 @@ void wb_apply_space(wb_t *w) {
     int m = w->reverb_mode; if (m < 0) m = 0; if (m > 3) m = 3;
     wb_reverb_set(&w->reverb, WB_REVERB_SIZE[m], WB_REVERB_DAMP[m]);
     w->reverb.width = w->width;
+    w->reverb.eco = w->eco;
     w->space_dtime = clampf(wb_loopsec(w), 0.05f, 1.0f);
     w->space_fb    = lerpf(0.15f, 0.6f, w->space);
 }
