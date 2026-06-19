@@ -1,0 +1,62 @@
+name: Release
+
+# Deliberate, versioned release. You bump the version in src/module.json (and
+# release.json) and push a matching tag:
+#
+#   git tag v0.19.0 && git push origin v0.19.0
+#
+# This builds the WASM engine + single-file web app, cross-compiles war_bells.so,
+# packs the Module Store tarball, and drops a GitHub Release with it attached.
+# A version guard fails the run if the tag and module.json disagree, so the
+# release.json download_url can never point at a tarball that doesn't exist.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # create the GitHub Release + upload the tarball
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install aarch64 cross-compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Version guard (tag must match module.json)
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#v}"
+          MJSON="$(jq -r .version src/module.json)"
+          echo "tag=$TAG  version=$VERSION  module.json=$MJSON"
+          if [ "$VERSION" != "$MJSON" ]; then
+            echo "::error::Tag $TAG does not match src/module.json version $MJSON. Bump module.json (and release.json) before tagging."
+            exit 1
+          fi
+          if ! grep -q "/${TAG}/war_bells-module.tar.gz" release.json; then
+            echo "::warning::release.json download_url does not point at ${TAG} — update it so the in-app updater resolves."
+          fi
+
+      - name: Host tests (don't ship a broken build)
+        run: bash scripts/run_tests.sh
+
+      - name: Build WASM engine + single-file web app
+        run: bash wasm/build_wasm.sh
+
+      - name: Cross-compile war_bells.so + pack module tarball
+        run: bash scripts/build.sh
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: War Bells ${{ github.ref_name }}
+          files: dist/war_bells-module.tar.gz
+          generate_release_notes: true
+          fail_on_unmatched_files: true

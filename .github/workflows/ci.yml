@@ -1,0 +1,50 @@
+name: CI
+
+# Safety net: prove every code change still cross-compiles for the Move (aarch64),
+# builds the WASM engine, and passes the host test suite. Docs/markdown-only changes
+# are skipped (they can't break the build). Releases are cut separately by pushing a
+# v* tag — see release.yml.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'research/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'research/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY.md'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install aarch64 cross-compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Host tests (DSP + preset parity + stress audit)
+        run: bash scripts/run_tests.sh
+
+      - name: Build WASM engine + single-file web app
+        run: bash wasm/build_wasm.sh
+
+      - name: Cross-compile war_bells.so + pack module tarball
+        run: bash scripts/build.sh
