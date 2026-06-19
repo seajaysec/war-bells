@@ -109,6 +109,7 @@ static void apply_grain(wb_t *w, const wb_var_t *v) {
     if (v->drone) nactive = (int)ceilf(w->activity * WB_NV);
     if (nactive < 1) nactive = 1;
     if (nactive > WB_NV) nactive = WB_NV;
+    if (w->eco && nactive > 4) nactive = 4;   /* Eco also caps granular voices (the #2 CPU cost) — only thins dense patches */
 
     float overlap = lerpf(1.2f, 4.5f, w->activity);
     float base_density = clampf((1.0f / ls) * overlap, 0.4f, 80.0f);

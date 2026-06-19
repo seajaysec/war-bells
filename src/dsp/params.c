@@ -483,7 +483,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"reverse")==0)  { w->reverse = enum_parse(val,ONOFF,2); w->params_dirty=1; }
     else if (strcmp(key,"bypass")==0)   { w->bypass = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"bypass_style")==0){ w->bypass_style = enum_parse(val,BYPASS_OPTS,3); w->bypass_lag = BYPASS_LAG[w->bypass_style]; }
-    else if (strcmp(key,"eco")==0)      { w->eco = enum_parse(val,ONOFF,2); wb_apply_space(w); }
+    else if (strcmp(key,"eco")==0)      { w->eco = enum_parse(val,ONOFF,2); wb_apply_space(w); w->params_dirty=1; }
     else if (strcmp(key,"bypass_trails")==0){ w->bypass_trails = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"input_mode")==0){ w->input_mono = enum_parse(val,INPUT_OPTS,2); }
     else if (strcmp(key,"input_gain")==0){ w->input_gain = wb_clampf((float)atof(val),0,2); }
