@@ -65,7 +65,9 @@
 
   .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:10px;
     overflow:hidden;max-height:1400px;opacity:1;transition:max-height .38s ease,opacity .28s ease,margin-top .28s ease}
-  @media(max-width:820px){.hero{grid-template-columns:1fr}}
+  /* On phones the synth panel is taller than the viewport; a sticky element taller than the screen
+     traps touch scrolling on iOS Safari. Make it scroll normally on small screens. */
+  @media(max-width:820px){.hero{grid-template-columns:1fr} .synthbar{position:static}}
   .synthbar.collapsed .hero{max-height:0;opacity:0;margin-top:0;pointer-events:none}
   #collapseBtn{transition:transform .3s ease}
   .synthbar.collapsed #collapseBtn{transform:rotate(-90deg)}
@@ -198,7 +200,7 @@
       <a href="#idea">Idea</a><a href="#effects">Effects</a><a href="#macros">Macros</a>
       <a href="#grain">Grain env</a><a href="#time">Time</a><a href="#space">Space</a>
       <a href="#presets">Presets</a><a href="#alive">Alive</a><a href="#perform">Perform</a><a href="#looper">Looper</a>
-      <a href="#user">User slots</a><a href="#midi">MIDI</a><a href="#web">Web control</a>
+      <a href="#user">User slots</a><a href="#midi">MIDI</a><a href="#web">Web control</a><a href="#install">Install</a>
     </div>
   </div>
 </nav>
@@ -390,6 +392,21 @@
     <p class="muted">It connects to the Schwung Manager's WebSocket, finds War Bells in your slots, and
     every control here drives the DSP — while hardware-knob moves flow back into this page. (Live control
     needs an http origin; an https page can't open an insecure socket, so the Pages copy stays in demo mode.)</p>
+  </div>
+</section>
+
+<section id="install">
+  <h2><span class="num">14</span>Get it on your Move</h2>
+  <div class="panel">
+    <p><b>From the catalog (easiest):</b> open the Module Store in Schwung on your Move, search
+    <b>War Bells</b>, and install. <span class="muted">(Available there once it's listed.)</span></p>
+    <p style="margin-top:14px"><b>Manual install:</b> download the latest <code class="url">war_bells-module.tar.gz</code> from the
+    <a href="https://github.com/seajaysec/war-bells/releases">releases page</a>, then from your computer:</p>
+    <pre style="background:var(--oledbg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;font:12px ui-monospace,monospace;color:var(--ink);line-height:1.5">scp war_bells-module.tar.gz ableton@move.local:/data/UserData/
+ssh ableton@move.local 'tar -xzf /data/UserData/war_bells-module.tar.gz \
+  -C /data/UserData/schwung/modules/audio_fx/'</pre>
+    <p class="muted">Then reload Schwung (or restart the Move) and add War Bells as an audio FX in a chain.
+    Full instructions, source &amp; releases: <a href="https://github.com/seajaysec/war-bells">github.com/seajaysec/war-bells</a>.</p>
   </div>
 </section>
 
