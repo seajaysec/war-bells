@@ -195,7 +195,7 @@ static void apply_preset(wb_t *w, int idx) {
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
     w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
-    w->effect_vol = 0.6f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
+    w->effect_vol = 0.72f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
     w->sustain = 0.0f; w->warp = 0.5f;
     switch (idx) {
     case 0: /* Init — clean octave stack */

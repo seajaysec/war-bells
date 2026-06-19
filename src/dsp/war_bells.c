@@ -241,7 +241,10 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
                 wb_reverb_process(&w->reverb, sigL + sdL*0.5f, sigR + sdR*0.5f, &rvL, &rvR);
                 w->shim_m = 0.0f;
             }
-            float spL = sdL + rvL, spR = sdR + rvR;
+            /* gain-staging: delay + reverb are summed, so scale the pair (equally — preserves their
+             * balance/texture) to keep the space bus under unity instead of compounding to ~2x. The
+             * Space knob makes up the level; the limiter is left as a rare safety, not a crutch. */
+            float spL = (sdL + rvL) * 0.6f, spR = (sdR + rvR) * 0.6f;
             sigL = wb_lerpf(sigL, spL, spaceEff);
             sigR = wb_lerpf(sigR, spR, spaceEff);
         }
