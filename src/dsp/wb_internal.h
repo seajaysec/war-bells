@@ -44,6 +44,7 @@ typedef struct wb {
     int   subdiv;                     /* 0..5 */
     float tempo_manual; int tempo_src; /* 0 host, 1 manual */
     int   hold, hold_style, reverse, bypass, bypass_style;
+    int   bypass_trails;              /* Trails: bypass lets the delay/reverb tail ring out (Avalanche-style) */
     int   eco;                        /* Eco CPU mode: lighter reverb (4 combs) for stacking instances */
     int   input_mono; float input_gain;
     char  module_dir[512];

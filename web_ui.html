@@ -353,10 +353,12 @@
   <div class="grid g3">
     <div class="panel"><h3>Input</h3><span class="ictl" data-k="input_mode"></span>
       <span class="ictl" data-k="input_gain"></span></div>
-    <div class="panel"><h3>Bypass · Eco</h3><span class="ictl" data-k="bypass"></span>
-      <span class="ictl" data-k="eco"></span>
-      <p class="muted">Eco = lighter reverb (4 combs vs 8). Off by default; flip it on when you're
-      stacking several instances and need CPU back — thinner tail, ~13% less per instance.</p></div>
+    <div class="panel"><h3>Bypass · Trails · Eco</h3><span class="ictl" data-k="bypass"></span>
+      <span class="ictl" data-k="bypass_trails"></span><span class="ictl" data-k="eco"></span>
+      <p class="muted"><b>Trails</b> (Avalanche-style): when you bypass, the delay/reverb tail rings
+      out and decays naturally (length follows Repeats/Space) while dry passes clean — hard bypass
+      cuts the tail instead. <b>Eco</b> = lighter reverb (4 combs vs 8) for stacking instances —
+      thinner tail, ~13% less CPU. Both off by default.</p></div>
     <div class="panel"><h3>Tone extras</h3><span class="ictl" data-k="filter_res"></span>
       <span class="ictl" data-k="effect_vol"></span></div>
   </div>
@@ -432,7 +434,7 @@ const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large
 /* one tasteful example per effect + the value-add showcases — mirrors the DSP apply_preset.
    B=baseline neutral so each preset is self-contained (matches the engine's reset-then-set). */
 const PB={filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,grain_env:0,reverse:0,reverb_mode:0,effect_vol:.85,
-          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0};
+          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0,bypass_trails:0};
 const PRESETS=[
  {n:"Init",d:"clean octave stack",s:{...PB,effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15}},
  {n:"Arp",d:"plucky glitch arps",s:{...PB,effect:0,variation:1,activity:.55,repeats:.4,shape:.45,mix:.75,space:.15,grain_env:1}},
@@ -451,6 +453,7 @@ const PRESETS=[
  {n:"Evolv",d:"self-evolving",s:{...PB,effect:8,variation:2,activity:.65,repeats:.55,shape:.45,mix:.85,space:.45,reverb_mode:2,evolve:.6,evo_range:1}},
  {n:"Scale",d:"scale-locked stack",s:{...PB,effect:5,variation:3,activity:.65,repeats:.45,shape:.5,mix:.9,space:.4,reverb_mode:2,pitch_scale:1}},
  {n:"Bloom",d:"wet swells in gaps",s:{...PB,effect:6,variation:0,activity:.5,repeats:.55,shape:.5,mix:.9,space:.6,reverb_mode:2,duck:.65}},
+ {n:"Trails",d:"tail rings on bypass",s:{...PB,effect:5,variation:0,activity:.45,repeats:.85,shape:.55,mix:.85,space:.8,reverb_mode:3,shimmer:1,bypass_trails:1}},
 ];
 
 /* ---------- param model (mirrors chain_params) ---------- */
@@ -471,7 +474,7 @@ const P={
  mod_depth:{name:"Mod Dep",t:"pct",v:0},mod_rate:{name:"Mod Rate",t:"pct",v:.4},
  hold:{name:"Hold",t:"enum",o:["Off","On"],v:0},hold_style:{name:"Hold Mode",t:"enum",o:["Latch","Gate"],v:0},
  looper_on:{name:"Looper",t:"enum",o:["Off","On"],v:0},
- transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase"],v:0},
+ transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase","Undo"],v:0},
  loop_reverse:{name:"Reverse",t:"enum",o:["Off","On"],v:0},
  loop_level:{name:"Level",t:"pct",v:.9},loop_fade:{name:"Lp Fade",t:"pct",v:.1},
  loop_fademode:{name:"Fade",t:"enum",o:["Both","In","Out"],v:0},
@@ -486,6 +489,7 @@ const P={
  input_mode:{name:"Input",t:"enum",o:["Ster","Mono"],v:0},
  input_gain:{name:"In Gain",t:"x",v:1,min:0,max:2},
  bypass:{name:"Bypass",t:"enum",o:["Off","On"],v:0},
+ bypass_trails:{name:"Trails",t:"enum",o:["Off","On"],v:0},
  eco:{name:"Eco CPU",t:"enum",o:["Off","On"],v:0},
  bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
  shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
@@ -510,7 +514,7 @@ const PAGES={
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
  looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed","loop_reverse","loop_route","loop_only"]},
  user:{title:"User",knobs:["user_slot","user_op"]},
- config:{title:"Config",knobs:["input_mode","input_gain","bypass","eco"]},
+ config:{title:"Config",knobs:["input_mode","input_gain","bypass","bypass_trails","eco"]},
 };
 let curPage="root";
 

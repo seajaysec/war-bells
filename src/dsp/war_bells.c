@@ -155,18 +155,26 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         float inL = wb_i16_to_f(audio[i*2])   * w->input_gain;
         float inR = wb_i16_to_f(audio[i*2+1]) * w->input_gain;
         if (w->input_mono) { float m = (inL+inR)*0.5f; inL = m; inR = m; }
-        float mono = (inL + inR) * 0.5f;
+        /* bypass ramp computed first: Trails fades the effect's INPUT (so the delay/reverb/grain
+         * tails decay naturally, length set by Repeats/Space) while clean dry passes; hard bypass
+         * keeps the feed and crossfades the OUTPUT to dry (cutting the tail). */
+        float btgt = w->bypass ? 1.0f : 0.0f;
+        w->bypass_cur += (btgt - w->bypass_cur) * bcoeff;
+        float bc = w->bypass_cur;
+        float feed = w->bypass_trails ? (1.0f - bc) : 1.0f;
+        float eInL = inL * feed, eInR = inR * feed;
+        float mono = (eInL + eInR) * 0.5f;
 
         int onset = wb_transient_process(&w->trans, mono) || (i == 0 && midi_on);
         if (onset && onset_driven && !w->hold) {
             for (int v = 0; v < WB_NV; v++) w->voices[v].ph = (double)w->voices[v].window;
         }
 
-        wb_ring_write(&w->ring, inL, inR);
+        wb_ring_write(&w->ring, eInL, eInR);
 
         float wetL = 0.0f, wetR = 0.0f;
         for (int v = 0; v < WB_NV; v++) wb_voice_process(&w->voices[v], &w->ring, &wetL, &wetR);
-        float dL, dR; wb_delay_process(&w->delay, inL, inR, &dL, &dR);
+        float dL, dR; wb_delay_process(&w->delay, eInL, eInR, &dL, &dR);
         wetL += dL; wetR += dR;
 
         /* Looper Only mutes the effect (grains/delay) but keeps dry + space + filter + loop */
@@ -174,8 +182,8 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         /* Duck: sidechain the wet to the input level so the effect blooms in the gaps */
         if (w->duck > 1e-4f)
             wetGain *= 1.0f - w->duck * wb_clampf(w->trans.env_slow * 6.0f, 0.0f, 1.0f);
-        float sigL = inL * dsqrt + wetL * w->effect_vol * msqrt * wetGain;
-        float sigR = inR * dsqrt + wetR * w->effect_vol * msqrt * wetGain;
+        float sigL = eInL * dsqrt + wetL * w->effect_vol * msqrt * wetGain;
+        float sigR = eInR * dsqrt + wetR * w->effect_vol * msqrt * wetGain;
 
         wb_chorus_process(&w->chorus, sigL, sigR, &sigL, &sigR);
 
@@ -211,11 +219,10 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         int hit = wb_looper_process(&w->looper, sigL, sigR, recL, recR, &outL, &outR);
         if (hit) wb_looper_close(&w->looper, w->looper.cap);
 
-        /* bypass crossfade to dry */
-        float btgt = w->bypass ? 1.0f : 0.0f;
-        w->bypass_cur += (btgt - w->bypass_cur) * bcoeff;
-        outL = wb_lerpf(outL, inL, w->bypass_cur);
-        outR = wb_lerpf(outR, inR, w->bypass_cur);
+        /* bypass output: Trails = effect tail (already decaying via faded feed) + clean dry rising;
+         * hard = crossfade straight to dry (tail cut). */
+        if (w->bypass_trails) { outL = outL + inL * bc; outR = outR + inR * bc; }
+        else { outL = wb_lerpf(outL, inL, bc); outR = wb_lerpf(outR, inR, bc); }
 
         audio[i*2]   = wb_f_to_i16(outL);
         audio[i*2+1] = wb_f_to_i16(outR);

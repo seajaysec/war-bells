@@ -31,8 +31,8 @@ static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[17] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom"};
+static const char *PRESET_OPTS[18] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -48,7 +48,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\",\"Trails\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -81,7 +81,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"hold_style\",\"name\":\"Hold Mode\",\"type\":\"enum\",\"options\":[\"Latch\",\"Gate\"]},"
 "{\"key\":\"duck\",\"name\":\"Bloom\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"looper_on\",\"name\":\"Looper\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
-"{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\"]},"
+"{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\",\"Undo\"]},"
 "{\"key\":\"loop_level\",\"name\":\"Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"loop_speed\",\"name\":\"Speed\",\"type\":\"float\",\"min\":0.25,\"max\":4,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"loop_reverse\",\"name\":\"Reverse\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
@@ -90,6 +90,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"input_mode\",\"name\":\"Input\",\"type\":\"enum\",\"options\":[\"Ster\",\"Mono\"]},"
 "{\"key\":\"input_gain\",\"name\":\"In Gain\",\"type\":\"float\",\"min\":0,\"max\":2,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"bypass\",\"name\":\"Bypass\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
+"{\"key\":\"bypass_trails\",\"name\":\"Trails\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"eco\",\"name\":\"Eco CPU\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"user_slot\",\"name\":\"User Slot\",\"type\":\"int\",\"min\":1,\"max\":16,\"step\":1},"
 "{\"key\":\"user_op\",\"name\":\"User Op\",\"type\":\"enum\",\"options\":[\"Idle\",\"Save\",\"Load\",\"Del\"]}"
@@ -127,9 +128,9 @@ static const char *UI_HIERARCHY_JSON =
    "\"params\":[{\"key\":\"looper_on\",\"name\":\"Looper\"},{\"key\":\"transport\",\"name\":\"Transport\"},"
    "{\"key\":\"loop_level\",\"name\":\"Level\"},{\"key\":\"loop_speed\",\"name\":\"Speed\"},"
    "{\"key\":\"loop_reverse\",\"name\":\"Reverse\"},{\"key\":\"loop_route\",\"name\":\"Record\"},{\"key\":\"loop_only\",\"name\":\"Solo\"}]},"
- "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\",\"eco\"],"
+ "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\",\"bypass_trails\",\"eco\"],"
    "\"params\":[{\"key\":\"input_mode\",\"name\":\"Input\"},{\"key\":\"input_gain\",\"name\":\"In Gain\"},"
-   "{\"key\":\"bypass\",\"name\":\"Bypass\"},{\"key\":\"eco\",\"name\":\"Eco CPU\"}]}"
+   "{\"key\":\"bypass\",\"name\":\"Bypass\"},{\"key\":\"bypass_trails\",\"name\":\"Trails\"},{\"key\":\"eco\",\"name\":\"Eco CPU\"}]}"
 "}}";
 
 /* parse an enum value: accept the option string OR a numeric index */
@@ -162,6 +163,7 @@ void wb_params_defaults(wb_t *w) {
     w->mod_depth = 0.0f; w->mod_rate = 0.4f;
     w->subdiv = 2; w->tempo_manual = 110.0f; w->tempo_src = 0;
     w->hold = 0; w->hold_style = 0; w->reverse = 0; w->bypass = 0; w->bypass_style = 0; w->eco = 0;
+    w->bypass_trails = 0;
     w->input_mono = 0; w->input_gain = 1.0f;
     w->looper_on = 0; w->loop_reverse = 0; w->loop_route = 0;
     w->loop_order = 0; w->loop_quantize = 0; w->loop_only = 0; w->loop_burst = 0;
@@ -183,14 +185,14 @@ void wb_params_defaults(wb_t *w) {
  * resets macros + value-adds to neutral so it sounds the same regardless of prior state. */
 static void apply_preset(wb_t *w, int idx) {
     if (idx < 0) idx = 0;
-    if (idx > 16) idx = 16;
+    if (idx > 17) idx = 17;
     w->preset = idx;
     /* neutral baseline (each case overrides what it needs) */
     w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
     w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
-    w->effect_vol = 0.85f; w->grain_env = 0; w->reverb_mode = 0;
+    w->effect_vol = 0.85f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
     switch (idx) {
     case 0: /* Init — clean octave stack */
         w->effect=5; w->variation=0; w->activity=0.30f; w->repeats=0.40f; w->shape=0.40f;
@@ -245,6 +247,9 @@ static void apply_preset(wb_t *w, int idx) {
     case 16: /* Bloom — wet swells in the gaps (duck/bloom showcase) */
         w->effect=6; w->variation=0; w->activity=0.50f; w->repeats=0.55f; w->shape=0.50f;
         w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->duck=0.65f; break;
+    case 17: /* Trails — lush sustain that rings out when you tap bypass (Avalanche-style) */
+        w->effect=5; w->variation=0; w->activity=0.45f; w->repeats=0.85f; w->shape=0.55f;
+        w->mix=0.85f; w->space=0.80f; w->reverb_mode=3; w->shimmer=1; w->bypass_trails=1; break;
     }
     w->params_dirty = 1;
     wb_apply_all(w);
@@ -415,6 +420,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"bypass",&v)==0) w->bypass=(int)v;
         if (json_f(val,"bypass_style",&v)==0) w->bypass_style=(int)v;
         if (json_f(val,"eco",&v)==0) w->eco=(int)v;
+        if (json_f(val,"bypass_trails",&v)==0) w->bypass_trails=(int)v;
         /* re-apply derived state (these are set by their own handlers normally) */
         w->looper.fade = 0.005f + w->loop_fade * 4.0f;
         w->looper.fademode = w->loop_fademode;
@@ -428,7 +434,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         return;
     }
 
-    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,17)); }
+    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,18)); }
     else if (strcmp(key,"effect")==0)   { w->effect = enum_parse(val,EFFECT_OPTS,WB_NEFFECTS); w->params_dirty=1; }
     else if (strcmp(key,"variation")==0){ w->variation = variation_parse(w,val); w->params_dirty=1; }
     else if (strcmp(key,"activity")==0) { w->activity = wb_clampf((float)atof(val),0,1); w->params_dirty=1; }
@@ -466,6 +472,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"bypass")==0)   { w->bypass = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"bypass_style")==0){ w->bypass_style = enum_parse(val,BYPASS_OPTS,3); w->bypass_lag = BYPASS_LAG[w->bypass_style]; }
     else if (strcmp(key,"eco")==0)      { w->eco = enum_parse(val,ONOFF,2); wb_apply_space(w); }
+    else if (strcmp(key,"bypass_trails")==0){ w->bypass_trails = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"input_mode")==0){ w->input_mono = enum_parse(val,INPUT_OPTS,2); }
     else if (strcmp(key,"input_gain")==0){ w->input_gain = wb_clampf((float)atof(val),0,2); }
     else if (strcmp(key,"looper_on")==0){
@@ -529,6 +536,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"reverse")==0)     return snprintf(buf,buf_len,"%s",ONOFF[w->reverse]);
     if (strcmp(key,"bypass")==0)      return snprintf(buf,buf_len,"%s",ONOFF[w->bypass]);
     if (strcmp(key,"eco")==0)         return snprintf(buf,buf_len,"%s",ONOFF[w->eco]);
+    if (strcmp(key,"bypass_trails")==0)return snprintf(buf,buf_len,"%s",ONOFF[w->bypass_trails]);
     if (strcmp(key,"bypass_style")==0)return snprintf(buf,buf_len,"%s",BYPASS_OPTS[w->bypass_style]);
     if (strcmp(key,"loop_burst")==0)  return snprintf(buf,buf_len,"%s",ONOFF[w->loop_burst]);
     if (strcmp(key,"input_mode")==0)  return snprintf(buf,buf_len,"%s",INPUT_OPTS[w->input_mono]);
@@ -557,7 +565,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"loop_reverse\":%d,\"loop_fade\":%.4f,\"loop_fademode\":%d,\"loop_route\":%d,\"loop_order\":%d,"
           "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
           "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
-          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d}",
+          "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d,\"bypass_trails\":%d}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
@@ -565,7 +573,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
           w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
           w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
-          w->evolve,w->evo_range,w->duck,w->width,w->eco);
+          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

@@ -144,6 +144,22 @@ int main(void){
     CHECK("eco reverb stays bounded", reco/24 < 32760.0 && reco > 0.0);
     api->set_param(inst,"eco","Off");
 
+    /* Trails bypass: tail rings out into silence (vs hard bypass which cuts it) */
+    api->set_param(inst,"preset","Init"); api->set_param(inst,"effect","Stack");
+    api->set_param(inst,"space","0.85"); api->set_param(inst,"reverb_mode","Vast"); api->set_param(inst,"repeats","0.8");
+    for(int blk=0;blk<60;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); }  /* excite the tail */
+    /* HARD bypass: feed silence -> output is the clean (silent) dry, tail cut */
+    api->set_param(inst,"bypass_trails","Off"); api->set_param(inst,"bypass","On");
+    double rhard=0; for(int blk=0;blk<40;blk++){ memset(buf,0,sizeof(buf)); api->process_block(inst,buf,128); rhard+=rms(buf,128);}
+    /* re-excite, then TRAILS bypass: feed silence -> tail keeps ringing */
+    api->set_param(inst,"bypass","Off");
+    for(int blk=0;blk<60;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); }
+    api->set_param(inst,"bypass_trails","On"); api->set_param(inst,"bypass","On");
+    double rtr=0; for(int blk=0;blk<40;blk++){ memset(buf,0,sizeof(buf)); api->process_block(inst,buf,128); rtr+=rms(buf,128);}
+    printf("  bypass tail: hard rms=%.1f  trails rms=%.1f\n", rhard/40, rtr/40);
+    CHECK("Trails bypass rings the tail out (hard cuts it)", rtr/40 > rhard/40 * 4.0 && rtr > 0.0);
+    api->set_param(inst,"bypass","Off"); api->set_param(inst,"bypass_trails","Off");
+
     /* timing defaults to Free (free-running, drifts) */
     { void *i2=api->create_instance("/tmp",NULL); char tb[16];
       api->get_param(i2,"tempo_src",tb,sizeof(tb));
@@ -161,10 +177,10 @@ int main(void){
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
     /* every character preset (one per effect + value-add showcases) loads + renders bounded */
-    { const char *PS[17]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom"};
+    { const char *PS[18]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails"};
       int allok=1;
-      for(int p=0;p<17;p++){ api->set_param(inst,"preset",PS[p]);
+      for(int p=0;p<18;p++){ api->set_param(inst,"preset",PS[p]);
         double e=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); e+=rms(buf,128); }
         if(!(e/24 < 32760.0 && e >= 0.0)) { allok=0; printf("  preset %s rms=%.1f\n", PS[p], e/24); } }
       CHECK("all 16 presets render bounded", allok); }
