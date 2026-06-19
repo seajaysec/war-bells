@@ -31,8 +31,8 @@ static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[16] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale"};
+static const char *PRESET_OPTS[17] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -48,7 +48,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -79,11 +79,14 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"dice\",\"name\":\"Dice\",\"type\":\"enum\",\"options\":[\"-\",\"Roll\"]},"
 "{\"key\":\"hold\",\"name\":\"Hold\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"hold_style\",\"name\":\"Hold Mode\",\"type\":\"enum\",\"options\":[\"Latch\",\"Gate\"]},"
-"{\"key\":\"duck\",\"name\":\"Duck\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"duck\",\"name\":\"Bloom\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"looper_on\",\"name\":\"Looper\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"transport\",\"name\":\"Transport\",\"type\":\"enum\",\"options\":[\"Idle\",\"Rec\",\"Play\",\"Dub\",\"Stop\",\"Erase\"]},"
 "{\"key\":\"loop_level\",\"name\":\"Level\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"loop_speed\",\"name\":\"Speed\",\"type\":\"float\",\"min\":0.25,\"max\":4,\"step\":0.05,\"display_format\":\".2f\"},"
+"{\"key\":\"loop_reverse\",\"name\":\"Reverse\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
+"{\"key\":\"loop_route\",\"name\":\"Record\",\"type\":\"enum\",\"options\":[\"Post\",\"Pre\"]},"
+"{\"key\":\"loop_only\",\"name\":\"Solo\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
 "{\"key\":\"input_mode\",\"name\":\"Input\",\"type\":\"enum\",\"options\":[\"Ster\",\"Mono\"]},"
 "{\"key\":\"input_gain\",\"name\":\"In Gain\",\"type\":\"float\",\"min\":0,\"max\":2,\"step\":0.05,\"display_format\":\".2f\"},"
 "{\"key\":\"bypass\",\"name\":\"Bypass\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
@@ -119,10 +122,11 @@ static const char *UI_HIERARCHY_JSON =
  "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"evo_range\",\"dice\"],"
    "\"params\":[{\"key\":\"evolve\",\"name\":\"Evolve\"},{\"key\":\"evo_range\",\"name\":\"Range\"},{\"key\":\"dice\",\"name\":\"Dice\"}]},"
  "\"perform\":{\"name\":\"Perform\",\"knobs\":[\"reverse\",\"hold\",\"hold_style\",\"duck\"],"
-   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Mode\"},{\"key\":\"duck\",\"name\":\"Duck\"}]},"
- "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\"],"
+   "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Mode\"},{\"key\":\"duck\",\"name\":\"Bloom\"}]},"
+ "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\",\"loop_reverse\",\"loop_route\",\"loop_only\"],"
    "\"params\":[{\"key\":\"looper_on\",\"name\":\"Looper\"},{\"key\":\"transport\",\"name\":\"Transport\"},"
-   "{\"key\":\"loop_level\",\"name\":\"Level\"},{\"key\":\"loop_speed\",\"name\":\"Speed\"}]},"
+   "{\"key\":\"loop_level\",\"name\":\"Level\"},{\"key\":\"loop_speed\",\"name\":\"Speed\"},"
+   "{\"key\":\"loop_reverse\",\"name\":\"Reverse\"},{\"key\":\"loop_route\",\"name\":\"Record\"},{\"key\":\"loop_only\",\"name\":\"Solo\"}]},"
  "\"config\":{\"name\":\"Config\",\"knobs\":[\"input_mode\",\"input_gain\",\"bypass\",\"eco\"],"
    "\"params\":[{\"key\":\"input_mode\",\"name\":\"Input\"},{\"key\":\"input_gain\",\"name\":\"In Gain\"},"
    "{\"key\":\"bypass\",\"name\":\"Bypass\"},{\"key\":\"eco\",\"name\":\"Eco CPU\"}]}"
@@ -179,7 +183,7 @@ void wb_params_defaults(wb_t *w) {
  * resets macros + value-adds to neutral so it sounds the same regardless of prior state. */
 static void apply_preset(wb_t *w, int idx) {
     if (idx < 0) idx = 0;
-    if (idx > 15) idx = 15;
+    if (idx > 16) idx = 16;
     w->preset = idx;
     /* neutral baseline (each case overrides what it needs) */
     w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
@@ -238,6 +242,9 @@ static void apply_preset(wb_t *w, int idx) {
     case 15: /* Scale — scale-locked octave stack (major) */
         w->effect=5; w->variation=3; w->activity=0.65f; w->repeats=0.45f; w->shape=0.50f;
         w->mix=0.90f; w->space=0.40f; w->reverb_mode=2; w->pitch_scale=1; break;
+    case 16: /* Bloom — wet swells in the gaps (duck/bloom showcase) */
+        w->effect=6; w->variation=0; w->activity=0.50f; w->repeats=0.55f; w->shape=0.50f;
+        w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->duck=0.65f; break;
     }
     w->params_dirty = 1;
     wb_apply_all(w);
@@ -414,13 +421,14 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         w->looper.dir = w->loop_reverse ? -1 : 1;
         w->looper.level = w->loop_level;
         w->looper.speed = w->loop_speed;
+        w->looper.only = w->loop_only;
         if (w->bypass_style < 0 || w->bypass_style > 2) w->bypass_style = 0;
         w->bypass_lag = BYPASS_LAG[w->bypass_style];
         wb_apply_all(w);   /* recompute effect/tone/space + ring.frozen from hold */
         return;
     }
 
-    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,16)); }
+    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,17)); }
     else if (strcmp(key,"effect")==0)   { w->effect = enum_parse(val,EFFECT_OPTS,WB_NEFFECTS); w->params_dirty=1; }
     else if (strcmp(key,"variation")==0){ w->variation = variation_parse(w,val); w->params_dirty=1; }
     else if (strcmp(key,"activity")==0) { w->activity = wb_clampf((float)atof(val),0,1); w->params_dirty=1; }
@@ -474,7 +482,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"loop_route")==0){ w->loop_route = enum_parse(val,ROUTE_OPTS,2); }
     else if (strcmp(key,"loop_order")==0){ w->loop_order = enum_parse(val,ORDER_OPTS,2); }
     else if (strcmp(key,"loop_quantize")==0){ w->loop_quantize = enum_parse(val,ONOFF,2); }
-    else if (strcmp(key,"loop_only")==0){ w->loop_only = enum_parse(val,ONOFF,2); w->looper.only = 0; }
+    else if (strcmp(key,"loop_only")==0){ w->loop_only = enum_parse(val,ONOFF,2); w->looper.only = w->loop_only; }
     else if (strcmp(key,"loop_burst")==0){ w->loop_burst = enum_parse(val,ONOFF,2); }
     else if (strcmp(key,"user_slot")==0){ int s=atoi(val); if(s<1)s=1; if(s>WB_USER_SLOTS)s=WB_USER_SLOTS; w->user_slot=s; }
     else if (strcmp(key,"user_op")==0){ int op=enum_parse(val,USER_OP_OPTS,4);

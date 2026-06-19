@@ -112,12 +112,15 @@ int main(void){
     api->set_param(inst,"transport","Erase");
     api->set_param(inst,"looper_on","Off");
 
-    /* Looper Only mutes the effect but keeps dry signal (must NOT be silent) */
+    /* loop Solo (loop_only): off = signal passes; on with no loop = mutes everything but the loop */
     api->set_param(inst,"mix","0.9"); api->set_param(inst,"effect_vol","0.9");
+    api->set_param(inst,"loop_only","Off");
+    double rdry=0; for(int blk=0;blk<8;blk++){ fill_sine(buf,128,&ph,440.0f); api->process_block(inst,buf,128); rdry+=rms(buf,128);}
+    CHECK("loop Solo off: signal passes", rdry/8 > 0.02);
     api->set_param(inst,"loop_only","On");
-    double rlo=0; for(int blk=0;blk<8;blk++){ fill_sine(buf,128,&ph,440.0f); api->process_block(inst,buf,128); rlo+=rms(buf,128);}
-    printf("  looper-only dry rms=%.4f\n", rlo/8);
-    CHECK("Looper Only still passes dry (not silent)", rlo/8 > 0.02);
+    double rsolo=0; for(int blk=0;blk<8;blk++){ fill_sine(buf,128,&ph,440.0f); api->process_block(inst,buf,128); rsolo+=rms(buf,128);}
+    printf("  loop solo off rms=%.4f  on rms=%.4f\n", rdry/8, rsolo/8);
+    CHECK("loop Solo on mutes the non-loop signal", rsolo/8 < rdry/8 * 0.25);
     api->set_param(inst,"loop_only","Off");
     api->set_param(inst,"mix","0.8"); api->set_param(inst,"effect_vol","0.8");
 
@@ -158,10 +161,10 @@ int main(void){
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
     /* every character preset (one per effect + value-add showcases) loads + renders bounded */
-    { const char *PS[16]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale"};
+    { const char *PS[17]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom"};
       int allok=1;
-      for(int p=0;p<16;p++){ api->set_param(inst,"preset",PS[p]);
+      for(int p=0;p<17;p++){ api->set_param(inst,"preset",PS[p]);
         double e=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); e+=rms(buf,128); }
         if(!(e/24 < 32760.0 && e >= 0.0)) { allok=0; printf("  preset %s rms=%.1f\n", PS[p], e/24); } }
       CHECK("all 16 presets render bounded", allok); }
@@ -237,7 +240,7 @@ int main(void){
     CHECK("chain_params: mix is typed float", strstr(big,"\"key\":\"mix\",\"name\":\"Mix\",\"type\":\"float\"")!=NULL);
     CHECK("chain_params: mod_depth typed float w/ unit", strstr(big,"\"key\":\"mod_depth\",\"name\":\"Mod Dep\",\"type\":\"float\"")!=NULL && strstr(big,"\"unit\":\"%\"")!=NULL);
     CHECK("chain_params: slim looper keeps loop_level (typed)", strstr(big,"\"key\":\"loop_level\",\"name\":\"Level\",\"type\":\"float\"")!=NULL);
-    CHECK("chain_params: dropped looper extras gone (loop_only/loop_burst)", strstr(big,"\"key\":\"loop_only\"")==NULL && strstr(big,"\"key\":\"loop_burst\"")==NULL);
+    CHECK("chain_params: loop_only restored, loop_burst still dropped", strstr(big,"\"key\":\"loop_only\"")!=NULL && strstr(big,"\"key\":\"loop_burst\"")==NULL);
     CHECK("chain_params: variation options are per-effect labels", strstr(big,"\"key\":\"variation\"")!=NULL && strstr(big,"\"range\"")!=NULL);
     { int cnt=0; const char *p=big; while((p=strstr(p,"\"key\":"))){cnt++;p+=6;}
       printf("  chain_params count=%d\n",cnt);

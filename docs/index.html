@@ -304,8 +304,9 @@
     <div class="panel"><h3>Evolve &amp; Dice</h3><p>Clocked, bounded re-rolling for textures that drift
       and never repeat; Dice re-rolls now. <span class="ictl" data-k="evolve"></span>
       <span class="ictl" data-k="evo_range"></span> <span class="ictl" data-k="dice"></span></p></div>
-    <div class="panel"><h3>Duck</h3><p>Sidechains the wet to your input so the effect blooms in the
-      gaps (Perform page). <span class="ictl" data-k="duck"></span></p></div>
+    <div class="panel"><h3>Bloom</h3><p>Ducks the wet under your playing so the effect swells back in the
+      gaps between notes (Perform page) — internal self-sidechain, distinct from a chain ducker.
+      <span class="ictl" data-k="duck"></span></p></div>
   </div>
 </section>
 
@@ -328,6 +329,11 @@
     <div class="panel"><h3>On / off</h3><span class="ictl" data-k="looper_on"></span></div>
     <div class="panel"><h3>Level</h3><span class="ictl" data-k="loop_level"></span></div>
     <div class="panel"><h3>Speed</h3><span class="ictl" data-k="loop_speed"></span></div>
+    <div class="panel"><h3>Reverse</h3><span class="ictl" data-k="loop_reverse"></span></div>
+    <div class="panel"><h3>Record src</h3><span class="ictl" data-k="loop_route"></span>
+      <p class="muted">Post = capture the processed sound; Pre = capture dry, then process the loop.</p></div>
+    <div class="panel"><h3>Solo</h3><span class="ictl" data-k="loop_only"></span>
+      <p class="muted">Plays only the loop (mutes the live signal).</p></div>
   </div>
 </section>
 
@@ -444,6 +450,7 @@ const PRESETS=[
  {n:"Motn",d:"LFO filter sweep",s:{...PB,effect:6,variation:0,activity:.6,repeats:.55,shape:.5,mix:.85,space:.55,reverb_mode:2,mot_target:2,mot_rate:3,mot_depth:.7}},
  {n:"Evolv",d:"self-evolving",s:{...PB,effect:8,variation:2,activity:.65,repeats:.55,shape:.45,mix:.85,space:.45,reverb_mode:2,evolve:.6,evo_range:1}},
  {n:"Scale",d:"scale-locked stack",s:{...PB,effect:5,variation:3,activity:.65,repeats:.45,shape:.5,mix:.9,space:.4,reverb_mode:2,pitch_scale:1}},
+ {n:"Bloom",d:"wet swells in gaps",s:{...PB,effect:6,variation:0,activity:.5,repeats:.55,shape:.5,mix:.9,space:.6,reverb_mode:2,duck:.65}},
 ];
 
 /* ---------- param model (mirrors chain_params) ---------- */
@@ -465,14 +472,14 @@ const P={
  hold:{name:"Hold",t:"enum",o:["Off","On"],v:0},hold_style:{name:"Hold Mode",t:"enum",o:["Latch","Gate"],v:0},
  looper_on:{name:"Looper",t:"enum",o:["Off","On"],v:0},
  transport:{name:"Transport",t:"enum",o:["Idle","Rec","Play","Dub","Stop","Erase"],v:0},
- loop_reverse:{name:"Lp Rev",t:"enum",o:["Off","On"],v:0},
+ loop_reverse:{name:"Reverse",t:"enum",o:["Off","On"],v:0},
  loop_level:{name:"Level",t:"pct",v:.9},loop_fade:{name:"Lp Fade",t:"pct",v:.1},
  loop_fademode:{name:"Fade",t:"enum",o:["Both","In","Out"],v:0},
  loop_speed:{name:"Speed",t:"x",v:1,min:.25,max:4},
- loop_route:{name:"Route",t:"enum",o:["Post","Pre"],v:0},
+ loop_route:{name:"Record",t:"enum",o:["Post","Pre"],v:0},
  loop_order:{name:"Op",t:"enum",o:["Std","Dub1"],v:0},
  loop_quantize:{name:"Quantize",t:"enum",o:["Off","On"],v:0},
- loop_only:{name:"Lp Only",t:"enum",o:["Off","On"],v:0},
+ loop_only:{name:"Solo",t:"enum",o:["Off","On"],v:0},
  loop_burst:{name:"Burst",t:"enum",o:["Off","On"],v:0},
  user_slot:{name:"User Slot",t:"int",v:1,min:1,max:16},
  user_op:{name:"User Op",t:"enum",o:["Idle","Save","Load","Del"],v:0},
@@ -484,7 +491,7 @@ const P={
  shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
  width:{name:"Width",t:"pct",v:1},
  pitch_scale:{name:"Scale",t:"enum",o:["Off","Maj","Min","Pent","Oct","5th"],v:0},
- duck:{name:"Duck",t:"pct",v:0},
+ duck:{name:"Bloom",t:"pct",v:0},
  mot_target:{name:"Mot Dest",t:"enum",o:["Off","Act","Filt","Space","Mix","Mod"],v:0},
  mot_rate:{name:"Mot Rate",t:"enum",o:["8bar","4bar","2bar","1bar","1/2","1/4","1/8"],v:3},
  mot_depth:{name:"Mot Dep",t:"pct",v:.4},
@@ -501,7 +508,7 @@ const PAGES={
  motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},
  generate:{title:"Generate",knobs:["evolve","evo_range","dice"]},
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
- looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed"]},
+ looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed","loop_reverse","loop_route","loop_only"]},
  user:{title:"User",knobs:["user_slot","user_op"]},
  config:{title:"Config",knobs:["input_mode","input_gain","bypass","eco"]},
 };
