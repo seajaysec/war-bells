@@ -48,6 +48,7 @@ static void *v2_create(const char *module_dir, const char *config_json) {
         return NULL;
     }
 
+    wb_tang_init(); wb_sin_init();   /* shared, idempotent: SVF tan-g + LFO sine LUTs */
     wb_ring_init(&w->ring, w->cap_l, w->cap_r, cap);
     for (int i = 0; i < WB_NV; i++) wb_voice_init(&w->voices[i], 0x1000u + i*2654435761u);
     wb_delay_init(&w->delay, w->dl_l, w->dl_r, dlen);

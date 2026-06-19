@@ -38,8 +38,8 @@ static inline void wb_chorus_process(wb_chorus_t *c, float inL, float inR,
     }
     float base = 0.0008f * WB_SR;                 /* 0.8 ms */
     float range = (0.012f * c->depth) * WB_SR;    /* up to 12 ms */
-    float lfoL = 0.5f + 0.5f * sinf((float)(2.0 * M_PI) * c->ph);
-    float lfoR = 0.5f + 0.5f * sinf((float)(2.0 * M_PI) * c->ph + 1.5708f);
+    float lfoL = 0.5f + 0.5f * wb_sin_turns(c->ph);            /* LUT (was sinf) */
+    float lfoR = 0.5f + 0.5f * wb_sin_turns(c->ph + 0.25f);    /* +pi/2 = +0.25 cycle */
     float wetL = wb_ch_read(c->l, c->w, base + range * lfoL);
     float wetR = wb_ch_read(c->r, c->w, base + range * lfoR);
     c->ph += c->rate / WB_SR; if (c->ph >= 1.0f) c->ph -= 1.0f;

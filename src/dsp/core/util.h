@@ -77,8 +77,51 @@ static inline void wb_hann_init(void) {
     WB_HANN_READY = 1;
 }
 static inline float wb_hann(float ph01) {   /* ph01 in [0,1) */
+    if (!WB_HANN_READY) wb_hann_init();   /* per-TU table: ensure init in every translation unit */
     int i = (int)(ph01 * WB_HANN_N) & (WB_HANN_N - 1);
     return WB_HANN[i];
+}
+
+/* shared tan-coefficient LUT for the SVF: g = tan(pi*cutoff/SR). Filter sweeps / bandpass /
+ * Motion recompute coeffs PER SAMPLE; this turns that tanf into a lerp'd table read (no audible
+ * change — interpolated, ~5 Hz grid). Linear-indexed so there's no logf per lookup either. */
+#define WB_TANG_N 4096
+static float WB_TANG[WB_TANG_N];
+static int   WB_TANG_READY = 0;
+static inline void wb_tang_init(void) {
+    if (WB_TANG_READY) return;
+    for (int i = 0; i < WB_TANG_N; i++) {
+        float fc = 20.0f + (20000.0f - 20.0f) * (float)i / (float)(WB_TANG_N - 1);
+        WB_TANG[i] = tanf((float)M_PI * fc / WB_SR);
+    }
+    WB_TANG_READY = 1;
+}
+static inline float wb_tan_g(float cutoff) {
+    if (!WB_TANG_READY) wb_tang_init();   /* per-TU table: ensure init in every translation unit */
+    if (cutoff < 20.0f) cutoff = 20.0f; else if (cutoff > 20000.0f) cutoff = 20000.0f;
+    float pos = (cutoff - 20.0f) * (float)(WB_TANG_N - 1) / (20000.0f - 20.0f);
+    int i = (int)pos; if (i >= WB_TANG_N - 1) i = WB_TANG_N - 2;
+    float f = pos - (float)i;
+    return WB_TANG[i] + (WB_TANG[i + 1] - WB_TANG[i]) * f;
+}
+
+/* shared sine LUT for the LFOs (chorus / grain & multitap sweep / Motion) — these are sinf
+ * per sample (per voice for sweeps); a lerp'd table read is inaudible. ph in turns (cycles). */
+#define WB_SIN_N 2048
+static float WB_SIN[WB_SIN_N];
+static int   WB_SIN_READY = 0;
+static inline void wb_sin_init(void) {
+    if (WB_SIN_READY) return;
+    for (int i = 0; i < WB_SIN_N; i++) WB_SIN[i] = sinf(2.0f * (float)M_PI * (float)i / (float)WB_SIN_N);
+    WB_SIN_READY = 1;
+}
+static inline float wb_sin_turns(float ph) {     /* sin(2*pi*ph), ph in cycles */
+    if (!WB_SIN_READY) wb_sin_init();   /* per-TU table: ensure init in every translation unit */
+    ph -= (float)(int)ph; if (ph < 0.0f) ph += 1.0f;
+    float x = ph * (float)WB_SIN_N;
+    int i = (int)x; float f = x - (float)i;
+    int j = (i + 1) & (WB_SIN_N - 1); i &= (WB_SIN_N - 1);
+    return WB_SIN[i] + (WB_SIN[j] - WB_SIN[i]) * f;
 }
 
 /* xorshift32 — cheap deterministic RNG for grain jitter/scatter */

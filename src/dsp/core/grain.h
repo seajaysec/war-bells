@@ -105,11 +105,21 @@ static inline void wb_voice_process(wb_voice_t *v, const wb_ring_t *rb,
                                     float *outL, float *outR) {
     /* param smoothing */
     v->gain_cur += (v->gain - v->gain_cur) * 0.002f;
-    if (v->gain_cur < 1e-5f && v->gain < 1e-5f) {
-        /* idle: still advance playhead so it stays in sync, but skip work */
-    }
     float eff = wb_voice_eff_rate(v);
     v->rate_cur += (eff - v->rate_cur) * 0.01f;
+    if (v->gain_cur < 1e-5f && v->gain < 1e-5f) {
+        /* fully idle (silent, no incoming gain): its output would be sum*~0 anyway, so keep the
+         * playhead/rate in sync, drop any lingering grains, and skip ALL per-sample DSP (grain
+         * reads, sweep LFO, filter coeff recompute). This is the big headroom win when Activity
+         * isn't maxed — zero audible change since the contribution is ~0. */
+        v->ph += (double)v->rate_cur;
+        if (v->window > 1.0f) {
+            while (v->ph >= (double)v->window) v->ph -= (double)v->window;
+            while (v->ph < 0.0) v->ph += (double)v->window;
+        }
+        for (int i = 0; i < WB_GRAINS_PER_VOICE; i++) v->g[i].active = 0;
+        return;
+    }
 
     /* schedule grains */
     v->sched += (double)(v->density / WB_SR);
@@ -131,7 +141,7 @@ static inline void wb_voice_process(wb_voice_t *v, const wb_ring_t *rb,
     if (v->fmode == WB_F_SWEEP) {
         v->sweep_ph += (double)(0.3f / WB_SR);
         if (v->sweep_ph >= 1.0) v->sweep_ph -= 1.0;
-        float lfo = 0.5f + 0.5f * sinf((float)(2.0 * M_PI * v->sweep_ph));
+        float lfo = 0.5f + 0.5f * wb_sin_turns((float)v->sweep_ph);
         sweepCut = wb_lerpf(v->cutoff * 0.15f, v->cutoff, lfo);
     }
     for (int i = 0; i < WB_GRAINS_PER_VOICE; i++) {

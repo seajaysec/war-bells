@@ -67,7 +67,7 @@ static inline void wb_delay_process(wb_delay_t *d, float inL, float inR,
     /* filter character */
     if (d->fmode == WB_F_SWEEP) {
         d->sweep_ph += 0.25f / WB_SR; if (d->sweep_ph >= 1.0f) d->sweep_ph -= 1.0f;
-        float lfo = 0.5f + 0.5f * sinf((float)(2.0 * M_PI * d->sweep_ph));
+        float lfo = 0.5f + 0.5f * wb_sin_turns(d->sweep_ph);   /* LUT (was sinf) */
         float fc = wb_lerpf(d->cutoff * 0.2f, d->cutoff, lfo);
         wb_svf_set(&d->fl, fc, d->rq); sL = wb_svf_lp(&d->fl, sL);
         wb_svf_set(&d->fr, fc, d->rq); sR = wb_svf_lp(&d->fr, sR);

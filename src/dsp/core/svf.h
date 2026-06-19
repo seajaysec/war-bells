@@ -20,7 +20,7 @@ static inline void wb_svf_set(wb_svf_t *f, float cutoff, float res) {
     cutoff = wb_clampf(cutoff, 20.0f, 20000.0f);
     res = wb_clampf(res, 0.0f, 0.98f);
     float q = 0.5f + res * 9.5f;           /* Q 0.5 .. 10 */
-    f->g = tanf((float)M_PI * cutoff / WB_SR);
+    f->g = wb_tan_g(cutoff);               /* LUT (was tanf) — per-sample on sweep/bandpass/Motion */
     f->k = 1.0f / q;
     f->a1 = 1.0f / (1.0f + f->g * (f->g + f->k));
     f->a2 = f->g * f->a1;
