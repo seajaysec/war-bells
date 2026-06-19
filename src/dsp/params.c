@@ -31,7 +31,8 @@ static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[8] = {"Init","Tail","Post","Chor","Shimr","Birds","Glass","Pad"};
+static const char *PRESET_OPTS[16] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -47,7 +48,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Tail\",\"Post\",\"Chor\",\"Shimr\",\"Birds\",\"Glass\",\"Pad\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -173,41 +174,70 @@ void wb_params_defaults(wb_t *w) {
 /* character presets — pick one to jump the effect + macros to a starting point
  * (effect indices: 0 Arp 1 Cutup 2 Chop 3 Glide 4 Seq 5 Stack 6 Cloud 7 Drone
  *  8 Chain 9 Taps 10 Warp). Drawn from creator patches + the manual's feel. */
+/* Character presets — a pretty example of each effect + the value-adds (shimmer / scale / motion /
+ * evolve). Every field a preset touches is a user-accessible param (hard rule). Each preset first
+ * resets macros + value-adds to neutral so it sounds the same regardless of prior state. */
 static void apply_preset(wb_t *w, int idx) {
     if (idx < 0) idx = 0;
-    if (idx > 7) idx = 7;
+    if (idx > 15) idx = 15;
     w->preset = idx;
-    w->reverse = 0;
+    /* neutral baseline (each case overrides what it needs) */
+    w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
+    w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
+    w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
+    w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
+    w->effect_vol = 0.85f; w->grain_env = 0; w->reverb_mode = 0;
     switch (idx) {
-    case 0: /* Init */
+    case 0: /* Init — clean octave stack */
         w->effect=5; w->variation=0; w->activity=0.30f; w->repeats=0.40f; w->shape=0.40f;
-        w->mix=0.70f; w->effect_vol=0.70f; w->space=0.15f; w->filter=1.0f; w->filter_res=0.1f;
-        w->mod_depth=0.0f; w->mod_rate=0.40f; w->reverb_mode=0; w->grain_env=0; break;
-    case 1: /* Erase — lingering drone slapback */
-        w->effect=7; w->variation=0; w->activity=0.15f; w->repeats=0.85f; w->shape=0.45f;
-        w->mix=0.60f; w->effect_vol=0.80f; w->space=0.25f; w->filter=1.0f;
-        w->mod_depth=0.10f; w->reverb_mode=1; w->grain_env=0; break;
-    case 2: /* Editor — paradoxical "edited in post" feel */
-        w->effect=7; w->variation=0; w->activity=0.40f; w->repeats=0.50f; w->shape=0.50f;
-        w->mix=0.60f; w->effect_vol=0.80f; w->space=0.45f; w->filter=1.0f;
-        w->mod_depth=0.20f; w->reverb_mode=2; w->grain_env=2; break;
-    case 3: /* Chorus — mod-forward, light effect */
-        w->effect=6; w->variation=0; w->activity=0.15f; w->repeats=0.30f; w->shape=0.50f;
-        w->mix=0.50f; w->effect_vol=0.25f; w->space=0.10f;
-        w->mod_depth=0.85f; w->mod_rate=0.55f; w->reverb_mode=0; w->grain_env=0; break;
-    case 4: /* Shimr — reverse shimmer tail */
-        w->effect=10; w->variation=2; w->activity=0.60f; w->repeats=0.50f; w->shape=0.60f;
-        w->mix=1.0f; w->effect_vol=0.90f; w->space=0.70f; w->reverb_mode=2;
-        w->reverse=1; w->grain_env=2; break;
-    case 5: /* Birds — jumbled reverse onsets */
-        w->effect=8; w->variation=3; w->activity=0.75f; w->repeats=0.40f; w->shape=0.40f;
-        w->mix=0.80f; w->effect_vol=0.90f; w->space=0.20f; w->reverse=1; w->grain_env=1; break;
-    case 6: /* Glass — octave glide sweep */
+        w->mix=0.70f; w->effect_vol=0.70f; w->space=0.15f; break;
+    case 1: /* Arp — plucky glitch arpeggios at varied speeds */
+        w->effect=0; w->variation=1; w->activity=0.55f; w->repeats=0.40f; w->shape=0.45f;
+        w->mix=0.75f; w->space=0.15f; w->grain_env=1; break;
+    case 2: /* Stutr — Cutup with filter sweeps + delay */
+        w->effect=1; w->variation=2; w->activity=0.60f; w->repeats=0.55f; w->shape=0.50f;
+        w->mix=0.85f; w->space=0.20f; w->filter=0.70f; w->filter_res=0.40f; break;
+    case 3: /* Chop — pitch-shifted chops, dark room */
+        w->effect=2; w->variation=1; w->activity=0.65f; w->repeats=0.45f; w->shape=0.45f;
+        w->mix=0.80f; w->space=0.20f; w->reverb_mode=1; w->grain_env=1; break;
+    case 4: /* Glass — octave glide, scale-locked to major, hall */
         w->effect=3; w->variation=2; w->activity=0.80f; w->repeats=0.40f; w->shape=0.60f;
-        w->mix=1.0f; w->effect_vol=0.90f; w->space=0.40f; w->grain_env=0; break;
-    case 7: /* Pad — murky grain wash */
-        w->effect=6; w->variation=1; w->activity=0.60f; w->repeats=0.80f; w->shape=0.50f;
-        w->mix=0.80f; w->effect_vol=0.80f; w->space=0.50f; w->mod_depth=0.35f; w->grain_env=0; break;
+        w->mix=1.0f; w->space=0.40f; w->reverb_mode=2; w->pitch_scale=1; break;
+    case 5: /* Seq — overlapping filter-swept rhythms */
+        w->effect=4; w->variation=2; w->activity=0.70f; w->repeats=0.45f; w->shape=0.40f;
+        w->mix=0.85f; w->space=0.30f; w->filter=0.80f; w->filter_res=0.30f; w->reverb_mode=1; break;
+    case 6: /* Stack — full half/normal/double/quad octave stack */
+        w->effect=5; w->variation=3; w->activity=0.70f; w->repeats=0.40f; w->shape=0.50f;
+        w->mix=0.90f; w->space=0.35f; w->reverb_mode=2; w->pitch_scale=4; break;
+    case 7: /* Cloud — lush dense grain wash with shimmer */
+        w->effect=6; w->variation=1; w->activity=0.65f; w->repeats=0.60f; w->shape=0.50f;
+        w->mix=0.90f; w->space=0.60f; w->reverb_mode=2; w->shimmer=1; break;
+    case 8: /* Drone — resonant bandpass drone, slow filter motion, vast space */
+        w->effect=7; w->variation=2; w->activity=0.20f; w->repeats=0.85f; w->shape=0.50f;
+        w->mix=0.70f; w->space=0.50f; w->reverb_mode=3;
+        w->mot_target=2; w->mot_rate=1; w->mot_depth=0.50f; w->mot_shape=0; break;
+    case 9: /* Birds — Chain cascades, reverse, plucky */
+        w->effect=8; w->variation=3; w->activity=0.75f; w->repeats=0.40f; w->shape=0.40f;
+        w->mix=0.80f; w->space=0.25f; w->reverse=1; w->grain_env=1; break;
+    case 10: /* Taps — swung multitap delay, dark */
+        w->effect=9; w->variation=1; w->activity=0.50f; w->repeats=0.65f; w->shape=0.40f;
+        w->mix=0.70f; w->space=0.20f; w->reverb_mode=1; break;
+    case 11: /* Warp — pitch-shifted taps, scale-locked, hall */
+        w->effect=10; w->variation=2; w->activity=0.55f; w->repeats=0.60f; w->shape=0.50f;
+        w->mix=0.85f; w->space=0.40f; w->reverb_mode=2; w->pitch_scale=1; break;
+    case 12: /* Sheen — shimmer reverb showcase (octave-up bloom) */
+        w->effect=5; w->variation=0; w->activity=0.50f; w->repeats=0.50f; w->shape=0.55f;
+        w->mix=1.0f; w->space=0.75f; w->reverb_mode=2; w->shimmer=1; w->grain_env=2; break;
+    case 13: /* Motn — Motion LFO sweeping the filter on a grain cloud */
+        w->effect=6; w->variation=0; w->activity=0.60f; w->repeats=0.55f; w->shape=0.50f;
+        w->mix=0.85f; w->space=0.55f; w->reverb_mode=2;
+        w->mot_target=2; w->mot_rate=3; w->mot_depth=0.70f; w->mot_shape=0; break;
+    case 14: /* Evolv — self-evolving cascading texture */
+        w->effect=8; w->variation=2; w->activity=0.65f; w->repeats=0.55f; w->shape=0.45f;
+        w->mix=0.85f; w->space=0.45f; w->reverb_mode=2; w->evolve=0.60f; w->evo_range=1; break;
+    case 15: /* Scale — scale-locked octave stack (major) */
+        w->effect=5; w->variation=3; w->activity=0.65f; w->repeats=0.45f; w->shape=0.50f;
+        w->mix=0.90f; w->space=0.40f; w->reverb_mode=2; w->pitch_scale=1; break;
     }
     w->params_dirty = 1;
     wb_apply_all(w);
@@ -390,7 +420,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         return;
     }
 
-    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,8)); }
+    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,16)); }
     else if (strcmp(key,"effect")==0)   { w->effect = enum_parse(val,EFFECT_OPTS,WB_NEFFECTS); w->params_dirty=1; }
     else if (strcmp(key,"variation")==0){ w->variation = variation_parse(w,val); w->params_dirty=1; }
     else if (strcmp(key,"activity")==0) { w->activity = wb_clampf((float)atof(val),0,1); w->params_dirty=1; }

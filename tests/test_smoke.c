@@ -157,6 +157,16 @@ int main(void){
       CHECK("preset Birds -> Chains + reverse", strcmp(e2,"Chain")==0 && strcmp(r2,"On")==0); }
     api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
 
+    /* every character preset (one per effect + value-add showcases) loads + renders bounded */
+    { const char *PS[16]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale"};
+      int allok=1;
+      for(int p=0;p<16;p++){ api->set_param(inst,"preset",PS[p]);
+        double e=0; for(int blk=0;blk<24;blk++){ fill_noise(buf,128,&st); api->process_block(inst,buf,128); e+=rms(buf,128); }
+        if(!(e/24 < 32760.0 && e >= 0.0)) { allok=0; printf("  preset %s rms=%.1f\n", PS[p], e/24); } }
+      CHECK("all 16 presets render bounded", allok); }
+    api->set_param(inst,"preset","Init"); api->set_param(inst,"reverse","Off");
+
     /* user-preset bank: save params to a slot, change, reload -> restored */
     api->set_param(inst,"effect","Warp"); api->set_param(inst,"activity","0.66");
     api->set_param(inst,"user_slot","1"); api->set_param(inst,"user_op","Save");

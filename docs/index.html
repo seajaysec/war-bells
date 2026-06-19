@@ -423,15 +423,27 @@ const EFFECTS=[
 const CATS={Loops:{c:"var(--loops)",h:168,d:"loops at various speeds"},Grains:{c:"var(--grains)",h:38,d:"clouds of fragments"},
  Glitch:{c:"var(--glitch)",h:336,d:"real-time rearrangement"},Delays:{c:"var(--delays)",h:266,d:"multi-tap echoes"}};
 const REVERBS=[["Room","small & bright"],["Dark","dark & damped"],["Hall","large & lush"],["Vast","endless wash"]];
+/* one tasteful example per effect + the value-add showcases — mirrors the DSP apply_preset.
+   B=baseline neutral so each preset is self-contained (matches the engine's reset-then-set). */
+const PB={filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,grain_env:0,reverse:0,reverb_mode:0,effect_vol:.85,
+          shimmer:0,pitch_scale:0,mot_target:0,mot_rate:3,mot_depth:.4,mot_shape:0,evolve:0,evo_range:1,width:1,duck:0};
 const PRESETS=[
- {n:"Init",d:"clean default",s:{effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15,filter:1,filter_res:.1,mod_depth:0,mod_rate:.4,reverb_mode:0,grain_env:0,reverse:0}},
- {n:"Tail",d:"lingering slapback",s:{effect:7,variation:0,activity:.15,repeats:.85,shape:.45,mix:.6,effect_vol:.8,space:.25,filter:1,mod_depth:.1,reverb_mode:1,grain_env:0,reverse:0}},
- {n:"Post",d:"edited-in-post",s:{effect:7,variation:0,activity:.4,repeats:.5,shape:.5,mix:.6,effect_vol:.8,space:.45,filter:1,mod_depth:.2,reverb_mode:2,grain_env:2,reverse:0}},
- {n:"Chor",d:"lush mod chorus",s:{effect:6,variation:0,activity:.15,repeats:.3,shape:.5,mix:.5,effect_vol:.25,space:.1,mod_depth:.85,mod_rate:.55,reverb_mode:0,grain_env:0,reverse:0}},
- {n:"Shimr",d:"reverse shimmer",s:{effect:10,variation:2,activity:.6,repeats:.5,shape:.6,mix:1,effect_vol:.9,space:.7,reverb_mode:2,reverse:1,grain_env:2}},
- {n:"Birds",d:"reverse onsets",s:{effect:8,variation:3,activity:.75,repeats:.4,shape:.4,mix:.8,effect_vol:.9,space:.2,reverse:1,grain_env:1}},
- {n:"Glass",d:"octave glide",s:{effect:3,variation:2,activity:.8,repeats:.4,shape:.6,mix:1,effect_vol:.9,space:.4,grain_env:0,reverse:0}},
- {n:"Pad",d:"murky wash",s:{effect:6,variation:1,activity:.6,repeats:.8,shape:.5,mix:.8,effect_vol:.8,space:.5,mod_depth:.35,grain_env:0,reverse:0}},
+ {n:"Init",d:"clean octave stack",s:{...PB,effect:5,variation:0,activity:.3,repeats:.4,shape:.4,mix:.7,effect_vol:.7,space:.15}},
+ {n:"Arp",d:"plucky glitch arps",s:{...PB,effect:0,variation:1,activity:.55,repeats:.4,shape:.45,mix:.75,space:.15,grain_env:1}},
+ {n:"Stutr",d:"filter-swept stutters",s:{...PB,effect:1,variation:2,activity:.6,repeats:.55,shape:.5,mix:.85,space:.2,filter:.7,filter_res:.4}},
+ {n:"Chop",d:"pitch chops, dark",s:{...PB,effect:2,variation:1,activity:.65,repeats:.45,shape:.45,mix:.8,space:.2,reverb_mode:1,grain_env:1}},
+ {n:"Glass",d:"octave glide, major",s:{...PB,effect:3,variation:2,activity:.8,repeats:.4,shape:.6,mix:1,space:.4,reverb_mode:2,pitch_scale:1}},
+ {n:"Seq",d:"swept rhythms",s:{...PB,effect:4,variation:2,activity:.7,repeats:.45,shape:.4,mix:.85,space:.3,filter:.8,filter_res:.3,reverb_mode:1}},
+ {n:"Stack",d:"full octave stack",s:{...PB,effect:5,variation:3,activity:.7,repeats:.4,shape:.5,mix:.9,space:.35,reverb_mode:2,pitch_scale:4}},
+ {n:"Cloud",d:"grain wash + shimmer",s:{...PB,effect:6,variation:1,activity:.65,repeats:.6,shape:.5,mix:.9,space:.6,reverb_mode:2,shimmer:1}},
+ {n:"Drone",d:"bandpass + motion",s:{...PB,effect:7,variation:2,activity:.2,repeats:.85,shape:.5,mix:.7,space:.5,reverb_mode:3,mot_target:2,mot_rate:1,mot_depth:.5}},
+ {n:"Birds",d:"reverse cascades",s:{...PB,effect:8,variation:3,activity:.75,repeats:.4,shape:.4,mix:.8,space:.25,reverse:1,grain_env:1}},
+ {n:"Taps",d:"swung multitap",s:{...PB,effect:9,variation:1,activity:.5,repeats:.65,shape:.4,mix:.7,space:.2,reverb_mode:1}},
+ {n:"Warp",d:"pitched taps, major",s:{...PB,effect:10,variation:2,activity:.55,repeats:.6,shape:.5,mix:.85,space:.4,reverb_mode:2,pitch_scale:1}},
+ {n:"Sheen",d:"shimmer reverb",s:{...PB,effect:5,variation:0,activity:.5,repeats:.5,shape:.55,mix:1,space:.75,reverb_mode:2,shimmer:1,grain_env:2}},
+ {n:"Motn",d:"LFO filter sweep",s:{...PB,effect:6,variation:0,activity:.6,repeats:.55,shape:.5,mix:.85,space:.55,reverb_mode:2,mot_target:2,mot_rate:3,mot_depth:.7}},
+ {n:"Evolv",d:"self-evolving",s:{...PB,effect:8,variation:2,activity:.65,repeats:.55,shape:.45,mix:.85,space:.45,reverb_mode:2,evolve:.6,evo_range:1}},
+ {n:"Scale",d:"scale-locked stack",s:{...PB,effect:5,variation:3,activity:.65,repeats:.45,shape:.5,mix:.9,space:.4,reverb_mode:2,pitch_scale:1}},
 ];
 
 /* ---------- param model (mirrors chain_params) ---------- */
