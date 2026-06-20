@@ -24,7 +24,10 @@ the Move (http) it's a live controller of the real plugin in Schwung. The same f
   `audio_fx` / `midi_fx` / master-fx modules are **never** auto-embedded — but the asset URL above is still
   served and the WebSocket bridge still finds them. So an FX companion is reached by opening that asset URL
   directly (or hosting on Pages), not by expecting it to appear in the Manager UI. Link it from your README /
-  the web-app footer, since the catalog/info page has no field for it either.
+  the web-app footer, since the catalog/info page has no field for it either. **Still true at v0.10.0** —
+  its "Remote UI now correctly loads custom Web UI" note was a *synth* bug-fix (the `comp == "synth"` gate is
+  unchanged at the v0.10.0 tag; OB-XD / Mini-JV that use it are `sound_generator`s). Re-check `remote_ui.go`
+  before assuming a later release lifts it.
 - **Live bridge**: WebSocket to schwung-manager `ws://<host>/ws/remote-ui`; subscribe to all 8 slots; `slot_info`
   reveals which slots hold your module (check `fx1`/`fx2` for the 2×-per-track / 8× case); `param_update` syncs
   hardware ↔ UI. Cache all slots for instant switching; offer a Demo↔slot picker.
