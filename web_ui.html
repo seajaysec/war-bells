@@ -264,10 +264,10 @@
   <div class="grid g3">
     <div class="panel"><h3>Activity</h3><p>Density / complexity.</p><span class="ictl" data-k="activity"></span></div>
     <div class="panel"><h3>Repeats</h3><p>How long it sustains.</p><span class="ictl" data-k="repeats"></span></div>
-    <div class="panel"><h3>Shape</h3><p>Tone &amp; contour.</p><span class="ictl" data-k="shape"></span></div>
+    <div class="panel"><h3>Rv Tone</h3><p>Reverb high-/low-pass; centre = flat (Shape moved to the Tone page).</p><span class="ictl" data-k="rev_tone"></span></div>
     <div class="panel"><h3>Mix</h3><p>Dry vs. effect (100% can fully cut the dry).</p><span class="ictl" data-k="mix"></span></div>
     <div class="panel"><h3>Space</h3><p>Reverb + delay wash.</p><span class="ictl" data-k="space"></span></div>
-    <div class="panel"><h3>Filter</h3><p>Resonant low-pass; full = open.</p><span class="ictl" data-k="filter"></span></div>
+    <div class="panel"><h3>Filter</h3><p>Global resonant low-pass; full = open.</p><span class="ictl" data-k="filter"></span></div>
   </div>
 </section>
 
@@ -300,6 +300,10 @@
   <h2><span class="num">06</span>Space &amp; reverb</h2>
   <p class="lead">The <b>Space</b> knob blends a delay + reverb tail. Four rooms:
    <span class="ictl" data-k="reverb_mode"></span></p>
+  <p class="lead"><b>Rv Tone</b> shapes the reverb's character from its own root knob. Centre is flat;
+   turn down to high-pass the tail (thins the lows — tames the low-end build-up ambient reverbs are prone
+   to), turn up to low-pass it (darker, warmer). It filters the reverb <i>send</i>, so it stops mud at the
+   source rather than masking it. <span class="ictl" data-k="rev_tone"></span></p>
   <div class="grid g4" id="revGrid"></div>
   <div class="tip">Pitch mod lives here too — <span class="ictl" data-k="mod_depth"></span>
    <span class="ictl" data-k="mod_rate"></span> from gentle chorus to seasick wobble.</div>
@@ -399,6 +403,7 @@
     <tr><td>9</td><td>Mix</td><td>20</td><td>Reverb</td></tr>
     <tr><td>11</td><td>Repeats</td><td>22</td><td>Looper</td></tr>
     <tr><td>12</td><td>Space</td><td>28–35</td><td>Transport</td></tr>
+    <tr><td>33</td><td>Rv Tone</td><td>47</td><td>Reverse</td></tr>
     <tr><td colspan="4" class="muted">Program Change selects effect + variation (effect = PC÷4, var = PC mod 4).</td></tr>
   </table>
 </section>
@@ -434,7 +439,8 @@ ssh ableton@move.local 'tar -xzf /data/UserData/war_bells-module.tar.gz \
 <footer>
   <p><b>War Bells</b> — a granular · glitch · delay · looper multi-effect for the Ableton Move,
   built via the open-source <a href="https://github.com/charlesvestal/schwung">Schwung</a> framework.
-  Licensed AGPLv3 — <a href="https://github.com/seajaysec/war-bells">source</a>.</p>
+  Licensed AGPLv3 — <a href="https://github.com/seajaysec/war-bells">source</a> ·
+  <a href="https://discord.com/channels/1480993331243778193/1517609182445178983">discuss on Discord</a>.</p>
 </footer>
 </div>
 
@@ -510,7 +516,7 @@ const P={
  variation:{name:"Var",t:"var",v:0},
  activity:{name:"Activity",t:"pct",v:.3},repeats:{name:"Repeats",t:"pct",v:.4},
  shape:{name:"Shape",t:"pct",v:.4},mix:{name:"Mix",t:"pct",v:.7},
- space:{name:"Space",t:"pct",v:.15},filter:{name:"Filter",t:"pct",v:1},
+ space:{name:"Space",t:"pct",v:.15},rev_tone:{name:"Rv Tone",t:"pct",v:.5},filter:{name:"Filter",t:"pct",v:1},
  filter_res:{name:"Reso",t:"pct",v:.1},effect_vol:{name:"FX Vol",t:"pct",v:.7},
  grain_env:{name:"Grain Env",t:"enum",o:["Soft","Pluck","Swell","Gate"],v:0},
  reverse:{name:"Reverse",t:"enum",o:["Off","On"],v:0},
@@ -554,8 +560,8 @@ const P={
  dice:{name:"Dice",t:"enum",o:["-","Roll"],v:0},
 };
 const PAGES={
- root:{title:"Effect",knobs:["effect","variation","activity","repeats","shape","mix","space","filter"]},
- tone:{title:"Tone",knobs:["filter_res","effect_vol","grain_env","pitch_scale"]},
+ root:{title:"Effect",knobs:["effect","variation","activity","repeats","rev_tone","mix","space","filter"]},
+ tone:{title:"Tone",knobs:["shape","filter_res","effect_vol","grain_env","pitch_scale"]},
  time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
  spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","sustain","warp","mod_depth","mod_rate"]},
  motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},

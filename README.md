@@ -8,7 +8,8 @@ forty-four variations, four grain envelopes, a Hold sampler, a four-mode stereo 
 **Motion** mod-LFO, a generative **Evolve/Dice** engine, input-ducking, a 60-second phrase looper,
 eight character presets, and a 16-slot user-preset bank that saves your sounds *and* their loops.
 
-🎛️ **[Interactive manual & live demo →](https://seajaysec.github.io/war-bells/)**
+🎛️ **[Interactive manual & live demo →](https://seajaysec.github.io/war-bells/)** &nbsp;·&nbsp;
+💬 **[Discuss on the Schwung Discord →](https://discord.com/channels/1480993331243778193/1517609182445178983)**
 
 ## The effects
 
@@ -30,8 +31,8 @@ War Bells is a standard Schwung `audio_fx` module. The host renders menu **pages
 the **8 knobs** per page; metadata is served from the plugin (`chain_params` + `ui_hierarchy`)
 so every parameter is editable on the device.
 
-- **Root** — Preset · Effect · Variation · Activity · Repeats · Shape · Mix · Space · Filter
-- **Tone** — Resonance · FX Vol · **Grain Env** (Soft / Pluck / Swell / Gate) · **Scale** (Off / Maj / Min / Pent / Oct / 5th)
+- **Root** — Preset · Effect · Variation · Activity · Repeats · **Rv Tone** · Mix · Space · Filter
+- **Tone** — **Shape** · Resonance · FX Vol · **Grain Env** (Soft / Pluck / Swell / Gate) · **Scale** (Off / Maj / Min / Pent / Oct / 5th)
 - **Time** — Clock (Free / Sync / Manual) · Subdivision · Tempo
 - **Space FX** — Reverb (Room / Dark / Hall / Vast) · **Shimmer** (Oct± / 5th) · **Width** · Mod Depth · Mod Rate
 - **Motion** — Mod Dest (Act / Filt / Space / Mix / Mod) · Rate (8 bar…1/8) · Depth · Wave
@@ -42,8 +43,11 @@ so every parameter is editable on the device.
 - **User Slots** — User Slot (1–16) · User Op (Save / Load / Del)
 - **Config** — Input (Stereo / Mono) · Input Gain · Bypass · Bypass Mode (Buf / Trail / True)
 
-The six macro knobs (**Activity, Repeats, Shape, Mix, Space, Filter**) re-interpret per
-effect. **Activity** = more/less of the effect's thing; **Repeats** = how long it rings on.
+The macro knobs **Activity, Repeats, Mix, Space, Filter** (and **Shape**, on the Tone page)
+re-interpret per effect. **Activity** = more/less of the effect's thing; **Repeats** = how
+long it rings on. **Rv Tone** is a bipolar reverb shaper on its own root knob: centre = flat,
+turn down to high-pass the tail (thins the lows / tames ambient low-end build-up), turn up to
+low-pass it (darker, warmer). It filters the reverb *send*, so it stops mud at the source.
 
 ### Timing
 
@@ -65,9 +69,9 @@ BPM. Onset-driven effects (Arp, Chain) also trigger from audio transients and MI
 ### MIDI
 
 Channel-wide CCs map the main controls (6 Activity · 7 Shape · 8 Filter · 9 Mix · 11 Repeats ·
-12 Space · 20 Reverb · 22 Looper · 28–35 transport · 47 Reverse · 48 Hold · 102 Bypass, plus
-more). **Program Change** selects effect + variation directly (effect = PC ÷ 4, variation =
-PC mod 4).
+12 Space · 20 Reverb · 33 Rv Tone · 22 Looper · 28–35 transport · 47 Reverse · 48 Hold · 102
+Bypass, plus more). **Program Change** selects effect + variation directly (effect = PC ÷ 4,
+variation = PC mod 4).
 
 ### Web control
 
@@ -98,7 +102,24 @@ Schroeder–Moorer reverb with four mode presets (`reverb.h`), a TPT state-varia
 filter (`svf.h`), a two-buffer 60-second looper (`looper.h`, WAV save/load), and an onset
 detector (`transient.h`). The per-variation "brain" lives in `effects.c`.
 
-## Build / install
+## Install (no build required)
+
+You do **not** need to compile War Bells — install it through the **Schwung Manager**
+(`http://move.local:7700` → **Modules**):
+
+- **From the catalog** *(once listed — see below)* — find **War Bells** under audio FX and tap
+  **Install**. One tap; auto-updates when a new release ships.
+- **Custom → from GitHub URL** — paste **`seajaysec/war-bells`**. The Manager reads
+  [`release.json`](release.json) and pulls the correct tarball from the latest GitHub Release.
+- **Custom → from file** — download the **`war_bells-module.tar.gz`** asset from the
+  [latest Release](https://github.com/seajaysec/war-bells/releases/latest) and upload it.
+
+> ⚠️ Use the **`war_bells-module.tar.gz`** asset, **not** GitHub's auto-generated
+> "Source code (tar.gz)". The source archive keeps `module.json` under `src/`, so the Manager
+> reports **"No module.json found in tarball."** The packaged asset has the right layout
+> (`war_bells/module.json`).
+
+Building from source is only for development:
 
 ```sh
 bash scripts/run_tests.sh      # host-side C tests (native cc)

@@ -18,7 +18,9 @@
 #define WB_REVERB_H
 
 #include <string.h>
+#include <math.h>
 #include "util.h"
+#include "svf.h"
 
 #define WB_RV_COMBS 8
 #define WB_RV_APS   4
@@ -39,6 +41,11 @@ typedef struct {
     float feedback, damp1, damp2;
     float dcx, dcy;           /* input DC blocker state (combs at ~0.94 fb amplify DC ~16x) */
     int   eco;                /* Eco: run 4 combs instead of 8 (CPU mode, thinner tail) */
+    /* Tone: a gentle HP/LP shaper on the reverb SEND (pre-feedback, so it can't destabilize the
+     * tank and physically stops low-end from accumulating). Bipolar: <0 raises the HP (cut lows),
+     * >0 lowers the LP (cut highs). Neutral deadzone bypasses both -> default sound is unchanged. */
+    wb_svf_t thp, tlp;        /* mono tone filters on the send */
+    int   tone_hp_on, tone_lp_on;
 } wb_reverb_t;
 
 static inline void wb_reverb_init(wb_reverb_t *v) {
@@ -50,6 +57,33 @@ static inline void wb_reverb_init(wb_reverb_t *v) {
         v->al[i].size = wb_ap_l[i]; v->ar[i].size = wb_ap_r[i];
     }
     v->room_size = 0.6f; v->damping = 0.4f; v->width = 1.0f;
+    wb_svf_reset(&v->thp); wb_svf_reset(&v->tlp);
+    v->tone_hp_on = 0; v->tone_lp_on = 0;
+}
+
+/* tone: bipolar -1..+1 (0 = flat). Control-rate (call from apply_space, not per sample).
+ * <0 sweeps a high-pass up 20 Hz -> 700 Hz (thins the lows / kills buildup);
+ * >0 sweeps a low-pass down 18 kHz -> 1.4 kHz (darker, warmer tail). Q is gentle (~0.5,
+ * no resonant bump). The deadzone around 0 leaves the send untouched = bit-identical default. */
+static inline void wb_reverb_set_tone(wb_reverb_t *v, float tone) {
+    if (tone < -0.02f) {
+        float t  = (-tone - 0.02f) / 0.98f;            /* 0..1 */
+        float hz = 20.0f * powf(35.0f, t);             /* 20 Hz .. ~700 Hz, exponential */
+        wb_svf_set(&v->thp, hz, 0.0f);
+        v->tone_hp_on = 1;
+    } else {
+        if (v->tone_hp_on) wb_svf_reset(&v->thp);      /* clean re-entry next time it's enabled */
+        v->tone_hp_on = 0;
+    }
+    if (tone > 0.02f) {
+        float t  = (tone - 0.02f) / 0.98f;
+        float hz = 18000.0f * powf(1400.0f / 18000.0f, t);  /* 18 kHz .. 1.4 kHz, exponential */
+        wb_svf_set(&v->tlp, hz, 0.0f);
+        v->tone_lp_on = 1;
+    } else {
+        if (v->tone_lp_on) wb_svf_reset(&v->tlp);
+        v->tone_lp_on = 0;
+    }
 }
 
 static inline void wb_reverb_update(wb_reverb_t *v) {
@@ -87,6 +121,10 @@ static inline void wb_reverb_process(wb_reverb_t *v, float inL, float inR,
     /* DC blocker on the input — the high-feedback combs (~0.94 in Hall/Vast) amplify any DC ~16x, which
      * otherwise rides up over seconds into an offset (the harness flagged 0.155). One-pole HPF ~5 Hz. */
     float dci = input - v->dcx + 0.9995f * v->dcy; v->dcx = input; v->dcy = dci; input = dci;
+    /* Tone shaper on the send (pre-feedback). Bypassed in the neutral deadzone, so the default
+     * sound is unchanged; when active it stops low-end accumulating in the tank at the source. */
+    if (v->tone_hp_on) input = wb_svf_hp(&v->thp, input);
+    if (v->tone_lp_on) input = wb_svf_lp(&v->tlp, input);
     float oL = 0.0f, oR = 0.0f;
     /* Eco halves the comb bank (the memory-bound bulk of the reverb cost) — thinner tail, ~half
      * the reverb CPU. Default (eco=0) runs the full 8 combs = unchanged sound. */

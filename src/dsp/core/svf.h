@@ -60,4 +60,15 @@ static inline float wb_svf_bp(wb_svf_t *f, float v0) {
     return v1;
 }
 
+/* returns high-pass output (uses same state; call ONE of lp/bp/hp per sample).
+ * hp = v0 - k*bp - lp — the standard TPT high-pass tap (used for reverb-send Tone). */
+static inline float wb_svf_hp(wb_svf_t *f, float v0) {
+    float v3 = v0 - f->ic2eq;
+    float v1 = f->a1 * f->ic1eq + f->a2 * v3;
+    float v2 = f->ic2eq + f->a2 * f->ic1eq + f->a3 * v3;
+    f->ic1eq = 2.0f * v1 - f->ic1eq;
+    f->ic2eq = 2.0f * v2 - f->ic2eq;
+    return v0 - f->k * v1 - v2;
+}
+
 #endif /* WB_SVF_H */

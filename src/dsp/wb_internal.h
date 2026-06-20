@@ -53,6 +53,7 @@ typedef struct wb {
     float filter, filter_res;
     float mix, effect_vol;
     float space; int reverb_mode;
+    float rev_tone;                   /* reverb-send Tone: 0..1, 0.5 = flat; <0.5 HP (cut lows), >0.5 LP (cut highs) */
     float sustain;                    /* space-delay feedback toward unity (sound-on-sound "storing up") */
     float warp;                       /* 0.5 = neutral; swept delay-time = tape pitch bend (rho = 1 - D') */
     float mod_depth, mod_rate;
