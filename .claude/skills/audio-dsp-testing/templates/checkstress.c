@@ -80,21 +80,26 @@ static void run_case(audio_fx_api_v2_t *api, const caseT *c, double out[M_N]){
         wb_acc_feed(&acc,L,R,128);
     }
     double act_mean = act_blk? act_us/act_blk : 1.0;
-    /* silence tail ~1s, chunked timing for denormal-stall */
-    double max_chunk_rate=0; int CH=64;
+    /* silence tail ~1s, chunked timing for denormal-stall. Aggregate with the MEDIAN chunk rate,
+     * not the max: a real denormal stall slows every decay block (median rises), while a single slow
+     * chunk is just OS scheduler jitter (median rejects it). Max turns this into a machine-load gauge
+     * that throws false regressions under CI load — median measures the stall itself. */
+    double chrate[6]; int CH=64;
     for(int chunk=0; chunk<6; chunk++){
         double cu=0; for(int b=0;b<CH;b++){ memset(buf,0,sizeof(buf));
             double t0=now_us(); api->process_block(inst,buf,128); cu += now_us()-t0;
             for(int i=0;i<256;i++){ double o=buf[i]/32768.0; if(!(o>-8.0&&o<8.0)) acc.nonfinite++; } }
-        double rate=cu/CH; if(rate>max_chunk_rate) max_chunk_rate=rate;
+        chrate[chunk]=cu/CH;
     }
+    for(int a=1;a<6;a++){ double v=chrate[a]; int b=a-1; while(b>=0&&chrate[b]>v){chrate[b+1]=chrate[b];b--;} chrate[b+1]=v; }
+    double med_chunk_rate = 0.5*(chrate[2]+chrate[3]);   /* median of 6 */
     out[M_SILENCE]  = wb_rms(&acc);
     out[M_RUNAWAY]  = acc.late_peak;
     out[M_TRUEPEAK] = acc.truepeak;
     out[M_CLICKS]   = wb_click_rate(&acc);
     out[M_DC]       = wb_dc(&acc);
     out[M_NONFIN]   = (double)acc.nonfinite;
-    out[M_DENORM]   = act_mean>1e-6 ? max_chunk_rate/act_mean : 0.0;
+    out[M_DENORM]   = act_mean>1e-6 ? med_chunk_rate/act_mean : 0.0;
     out[M_HARSH]    = 0; out[M_ALIAS]=0;  /* spectral only */
     api->destroy_instance(inst);
 }
