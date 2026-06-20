@@ -23,9 +23,21 @@ This builds, scps `war_bells.so` + `module.json` + `ui_chain.js` to
 `/data/UserData/schwung/modules/audio_fx/war_bells/`, and restarts the Move to load it.
 Set `MOVE_NO_RESTART=1` to copy only.
 
-### Option B — Module Store / file install
-Upload `dist/war_bells-module.tar.gz` via the `schwung-manager` web UI ("Install from
-File"), or publish a GitHub release and install from its URL (see `release.json`).
+### Option B — Schwung Manager (no build required)
+Open the Schwung Manager at `http://move.local:7700` → **Modules**:
+
+- **Catalog** *(once War Bells is listed)* — find it under audio FX and tap **Install**.
+- **Custom → from GitHub URL** — paste `seajaysec/war-bells`. The Manager fetches
+  `release.json` from the repo and downloads the matching `war_bells-module.tar.gz` asset.
+- **Custom → from file** — download `war_bells-module.tar.gz` from the
+  [latest Release](https://github.com/seajaysec/war-bells/releases/latest) and upload it
+  ("Install from File"). When building locally, the same file is at
+  `dist/war_bells-module.tar.gz`.
+
+> **Don't upload GitHub's "Source code (tar.gz)".** That archive keeps `module.json` under
+> `src/`, so the Manager's installer (which expects `module.json` at the top of the single
+> bundled folder) reports **"No module.json found in tarball."** Use the
+> `war_bells-module.tar.gz` asset, whose layout is `war_bells/module.json` + `war_bells.so` + …
 
 On-device layout (audio_fx in a Signal Chain is loaded directly as `<id>/<id>.so`):
 ```
