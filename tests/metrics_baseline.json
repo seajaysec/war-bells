@@ -6,7 +6,7 @@
     "discontinuity": {"worst": 16.50150, "threshold": 90.00000, "higher_worse": 1, "fails": 0, "worst_case": "MC#10"},
     "dc_offset": {"worst": 0.00040, "threshold": 0.02000, "higher_worse": 1, "fails": 0, "worst_case": "sweep:repeats=0.25"},
     "non_finite": {"worst": 0.00000, "threshold": 0.50000, "higher_worse": 1, "fails": 0, "worst_case": "Init"},
-    "denormal": {"worst": 1.22697, "threshold": 6.00000, "higher_worse": 1, "fails": 0, "worst_case": "Birds"},
+    "denormal": {"worst": 1.15000, "threshold": 6.00000, "higher_worse": 1, "fails": 0, "worst_case": "median-of-6 silence chunks (jitter-robust)"},
     "harshness": {"worst": 0.00116, "threshold": 0.25000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:worst"},
     "aliasing": {"worst": 0.00119, "threshold": 0.20000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:worst"}
   }
