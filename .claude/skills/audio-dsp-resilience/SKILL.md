@@ -32,7 +32,11 @@ crashing until rebuilt this way.)
 1. **Feedback gain < 1 by design** (account for gain filters/resonance add at peaks); put a **soft saturator
    inside every feedback loop** as the musical safety.
 2. **Gain-stage every stage** — normalize so nothing compounds past unity into the next stage.
-3. **DC-block the INPUT of any high-feedback stage** — combs at ~0.94 fb amplify DC ~16×.
+3. **DC-block the INPUT of any high-feedback stage** — combs at ~0.94 fb amplify DC ~16×. Same placement
+   logic for tone/EQ on a feedback effect (reverb/delay/looper): filter the **SEND** (pre-feedback), not the
+   return. A return filter only masks the current output while energy keeps accumulating in the tank; a send
+   HP/LP physically stops low-end build-up at the source AND, being outside the loop, can't destabilize it.
+   Make the neutral position a true bypass (deadzone) so the default sound stays bit-identical.
 4. **Smooth every parameter** per sample (one-pole, perceptual/dB-log domain); **soft-saturate, never
    hard-clamp** (hard clamp folds → aliasing/crackle).
 5. **Flush denormals** (FTZ/DAZ on the audio thread) or decay tails stall the CPU 10–100×.

@@ -44,6 +44,12 @@ function. That's the extensibility that makes it self-improving.
 - **aliasing** = inharmonic energy in the **HF band only** — else a tone through a big reverb reads as
   "aliasing" (legit modal density, false positive). Calibrate against a *clean* reference first.
 - **dc_offset / true_peak** are cheap and catch the sneaky stuff (DC ×16 in combs; inter-sample overs).
+- **Wall-clock metrics (e.g. `denormal` = CPU/block on decay) must aggregate with MEDIAN, not MAX.** A real
+  denormal stall slows *every* decay block (median rises); a single slow chunk is just OS scheduler jitter
+  (median rejects it). Taking the max turns the probe into a machine-load gauge that throws false `REGRESSION`
+  failures under CI load — it'll fail ~50% of runs on unchanged code, worst *under* load. Median-of-6 cut the
+  idle variance ~20× here and held flat under 4 busy cores. If only a timing metric regresses, re-run 3–5× and
+  `git stash`-test pristine before believing it; deterministic metrics (silence/dc/aliasing/…) don't do this.
 
 ## Self-improve (references/self-improvement.md + scripts/)
 

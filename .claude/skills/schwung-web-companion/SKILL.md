@@ -19,6 +19,12 @@ the Move (http) it's a live controller of the real plugin in Schwung. The same f
   the Move) → live. The Move serves the file at
   `http://<host>:7700/api/remote-ui/module-assets/<module>/web_ui.html` (static asset — `scp` updates it, **no
   restart**).
+- **Auto-embed is SYNTH-SLOT-ONLY.** schwung-manager only auto-loads your `web_ui.html` into the iframe on the
+  `/remote-ui` page when your module is the **synth** of a shadow slot (`remote_ui.go` checks only there).
+  `audio_fx` / `midi_fx` / master-fx modules are **never** auto-embedded — but the asset URL above is still
+  served and the WebSocket bridge still finds them. So an FX companion is reached by opening that asset URL
+  directly (or hosting on Pages), not by expecting it to appear in the Manager UI. Link it from your README /
+  the web-app footer, since the catalog/info page has no field for it either.
 - **Live bridge**: WebSocket to schwung-manager `ws://<host>/ws/remote-ui`; subscribe to all 8 slots; `slot_info`
   reveals which slots hold your module (check `fx1`/`fx2` for the 2×-per-track / 8× case); `param_update` syncs
   hardware ↔ UI. Cache all slots for instant switching; offer a Demo↔slot picker.
@@ -37,6 +43,8 @@ the Move (http) it's a live controller of the real plugin in Schwung. The same f
 - "web demo crashes but device is fine / tests pass" → preset drift. Single-source it + add a parity test.
 - "can't control my Move from the GitHub link" → expected (https→ws blocked). Use/serve the Move's http URL;
   add a hand-off button on Pages. See `references/dualmode.md`.
+- "my web UI never shows up in the Manager Remote UI page" → your module isn't a synth (audio_fx/midi_fx aren't
+  auto-embedded). Not a bug — open the `module-assets/<id>/web_ui.html` URL directly, or use Pages.
 - "slow to load / sluggish on the Move" → lazy-instantiate the WASM; skip it entirely in live mode.
 - "iOS won't scroll" → a `position:sticky` element taller than the viewport traps touch scroll; make it static
   under ~820px. (General web gotcha, lives here because it bit this UI.)
