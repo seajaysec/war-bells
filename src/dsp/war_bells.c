@@ -315,6 +315,7 @@ static void midi_cc(wb_t *w, int cc, int v) {
         case 18: { const float st[6]={0.25f,0.5f,1,2,4,4}; snprintf(b,sizeof(b),"%.3f",st[v>5?5:v]); wb_params_set(w,"loop_speed",b);} break;
         case 19: CONT("mod_depth"); break;
         case 20: IDX("reverb_mode", v/32>3?3:v/32); break;
+        case 33: CONT("rev_tone"); break;
         case 21: CONT("loop_fade"); break;
         case 22: TOG("looper_on"); break;
         case 23: TOG("loop_reverse"); break;

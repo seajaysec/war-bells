@@ -70,6 +70,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"mix\",\"name\":\"Mix\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"effect_vol\",\"name\":\"FX Vol\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"space\",\"name\":\"Space\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"rev_tone\",\"name\":\"Rv Tone\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"filter\",\"name\":\"Filter\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"filter_res\",\"name\":\"Reso\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"grain_env\",\"name\":\"Grain Env\",\"type\":\"enum\",\"options\":[\"Soft\",\"Pluck\",\"Swell\",\"Gate\"]},"
@@ -116,10 +117,10 @@ static const char *CHAIN_PARAMS_FMT =
  * 8 knobs + the 8 most-used params + sub-level links. */
 static const char *UI_HIERARCHY_JSON =
 "{\"levels\":{"
- "\"root\":{\"name\":\"War Bells\",\"knobs\":[\"effect\",\"variation\",\"activity\",\"repeats\",\"shape\",\"mix\",\"space\",\"filter\"],"
+ "\"root\":{\"name\":\"War Bells\",\"knobs\":[\"effect\",\"variation\",\"activity\",\"repeats\",\"rev_tone\",\"mix\",\"space\",\"filter\"],"
    "\"params\":[{\"key\":\"preset\",\"name\":\"Preset\"},{\"key\":\"effect\",\"name\":\"Effect\"},{\"key\":\"variation\",\"name\":\"Var\"},"
    "{\"key\":\"activity\",\"name\":\"Activity\"},{\"key\":\"repeats\",\"name\":\"Repeats\"},"
-   "{\"key\":\"shape\",\"name\":\"Shape\"},{\"key\":\"mix\",\"name\":\"Mix\"},"
+   "{\"key\":\"rev_tone\",\"name\":\"Rv Tone\"},{\"key\":\"mix\",\"name\":\"Mix\"},"
    "{\"key\":\"space\",\"name\":\"Space\"},{\"key\":\"filter\",\"name\":\"Filter\"},"
    "{\"level\":\"tone\",\"name\":\"Tone\"},{\"level\":\"time\",\"name\":\"Time\"},"
    "{\"level\":\"spacefx\",\"name\":\"Space FX\"},{\"level\":\"motion\",\"name\":\"Motion\"},{\"level\":\"generate\",\"name\":\"Generate\"},{\"level\":\"perform\",\"name\":\"Perform\"},"
@@ -127,8 +128,8 @@ static const char *UI_HIERARCHY_JSON =
    "{\"level\":\"user\",\"name\":\"User Slots\"},{\"level\":\"config\",\"name\":\"Config\"}]},"
  "\"user\":{\"name\":\"User Slots\",\"knobs\":[\"user_slot\",\"user_op\"],"
    "\"params\":[{\"key\":\"user_slot\",\"name\":\"User Slot\"},{\"key\":\"user_op\",\"name\":\"User Op\"}]},"
- "\"tone\":{\"name\":\"Tone\",\"knobs\":[\"filter_res\",\"effect_vol\",\"grain_env\",\"pitch_scale\"],"
-   "\"params\":[{\"key\":\"filter_res\",\"name\":\"Reso\"},{\"key\":\"effect_vol\",\"name\":\"FX Vol\"},{\"key\":\"grain_env\",\"name\":\"Grain Env\"},{\"key\":\"pitch_scale\",\"name\":\"Scale\"}]},"
+ "\"tone\":{\"name\":\"Tone\",\"knobs\":[\"shape\",\"filter_res\",\"effect_vol\",\"grain_env\",\"pitch_scale\"],"
+   "\"params\":[{\"key\":\"shape\",\"name\":\"Shape\"},{\"key\":\"filter_res\",\"name\":\"Reso\"},{\"key\":\"effect_vol\",\"name\":\"FX Vol\"},{\"key\":\"grain_env\",\"name\":\"Grain Env\"},{\"key\":\"pitch_scale\",\"name\":\"Scale\"}]},"
  "\"time\":{\"name\":\"Time\",\"knobs\":[\"tempo_src\",\"subdiv\",\"tempo\"],"
    "\"params\":[{\"key\":\"tempo_src\",\"name\":\"Clock\"},{\"key\":\"subdiv\",\"name\":\"Subdiv\"},{\"key\":\"tempo\",\"name\":\"Tempo\"}]},"
  "\"spacefx\":{\"name\":\"Space FX\",\"knobs\":[\"reverb_mode\",\"shimmer\",\"width\",\"sustain\",\"warp\",\"mod_depth\",\"mod_rate\"],"
@@ -174,7 +175,7 @@ void wb_params_defaults(wb_t *w) {
     w->activity = 0.3f; w->repeats = 0.4f; w->shape = 0.4f;
     w->filter = 1.0f; w->filter_res = 0.1f;
     w->mix = 0.7f; w->effect_vol = 0.7f;
-    w->space = 0.15f; w->reverb_mode = 0;
+    w->space = 0.15f; w->reverb_mode = 0; w->rev_tone = 0.5f;
     w->mod_depth = 0.0f; w->mod_rate = 0.4f;
     w->subdiv = 2; w->tempo_manual = 110.0f; w->tempo_src = 0;
     w->hold = 0; w->hold_style = 0; w->reverse = 0; w->bypass = 0; w->bypass_style = 0; w->eco = 0;
@@ -209,7 +210,7 @@ static void apply_preset(wb_t *w, int idx) {
     w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
     w->effect_vol = 0.72f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
-    w->sustain = 0.0f; w->warp = 0.5f;
+    w->sustain = 0.0f; w->warp = 0.5f; w->rev_tone = 0.5f;
     switch (idx) {
     case 0: /* Init — clean octave stack */
         w->effect=5; w->variation=0; w->activity=0.30f; w->repeats=0.40f; w->shape=0.40f;
@@ -427,6 +428,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"width",&v)==0) w->width=v;
         if (json_f(val,"sustain",&v)==0) w->sustain=v;
         if (json_f(val,"warp",&v)==0) w->warp=v;
+        if (json_f(val,"rev_tone",&v)==0) w->rev_tone=v;
         if (json_f(val,"preset",&v)==0) w->preset=(int)v;
         if (json_f(val,"hold",&v)==0) w->hold=(int)v;
         if (json_f(val,"hold_style",&v)==0) w->hold_style=(int)v;
@@ -470,6 +472,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"mix")==0)      { w->mix = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"effect_vol")==0){ w->effect_vol = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"space")==0)    { w->space = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
+    else if (strcmp(key,"rev_tone")==0) { w->rev_tone = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
     else if (strcmp(key,"reverb_mode")==0){ w->reverb_mode = enum_parse(val,REVERB_OPTS,4); wb_apply_space(w); }
     else if (strcmp(key,"shimmer")==0)  { w->shimmer = enum_parse(val,SHIMMER_OPTS,4); }
     else if (strcmp(key,"width")==0)    { w->width = wb_clampf((float)atof(val),0,1); wb_apply_space(w); }
@@ -537,6 +540,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"mix")==0)         return snprintf(buf,buf_len,"%.3f",w->mix);
     if (strcmp(key,"effect_vol")==0)  return snprintf(buf,buf_len,"%.3f",w->effect_vol);
     if (strcmp(key,"space")==0)       return snprintf(buf,buf_len,"%.3f",w->space);
+    if (strcmp(key,"rev_tone")==0)    return snprintf(buf,buf_len,"%.3f",w->rev_tone);
     if (strcmp(key,"reverb_mode")==0) return snprintf(buf,buf_len,"%s",REVERB_OPTS[w->reverb_mode]);
     if (strcmp(key,"shimmer")==0)     return snprintf(buf,buf_len,"%s",SHIMMER_OPTS[w->shimmer]);
     if (strcmp(key,"width")==0)       return snprintf(buf,buf_len,"%.3f",w->width);
@@ -593,7 +597,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
           "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
           "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d,\"bypass_trails\":%d,"
-          "\"sustain\":%.4f,\"warp\":%.4f}",
+          "\"sustain\":%.4f,\"warp\":%.4f,\"rev_tone\":%.4f}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
@@ -601,7 +605,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
           w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
           w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
-          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails,w->sustain,w->warp);
+          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails,w->sustain,w->warp,w->rev_tone);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

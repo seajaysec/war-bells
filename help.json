@@ -21,7 +21,7 @@
         "2 Variation",
         "3 Activity (density)",
         "4 Repeats (length)",
-        "5 Shape (tone)",
+        "5 Rv Tone (hp/lp)",
         "6 Mix (dry/wet)",
         "7 Space (reverb)",
         "8 Filter (lowpass)"
@@ -46,8 +46,9 @@
     {
       "title": "Pages",
       "lines": [
-        "Tone: reso fx-vol",
-        " grain-env scale",
+        "Tone: shape reso",
+        " fx-vol grain-env",
+        " scale",
         "Time: tempo subdiv",
         "Space FX: reverb",
         " shimmer width mod",
