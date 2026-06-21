@@ -56,6 +56,12 @@ typedef struct {
     /* smoothing + state */
     float gain_cur, rate_cur;
     float sweep_ph;      /* slow LFO phase for sweep filter */
+    /* Drift: independent slow per-voice LFOs (depth set by the global Drift macro). Each voice
+     * wanders its own gain/pan/rate on randomized slow clocks -> the cloud breathes + never repeats.
+     * Applied values are neutral (1,1,0) when Drift is off, so the sound is unchanged. */
+    double drift_ph[3];  /* phases (turns) for gain / pan / rate LFOs */
+    float  drift_per[3]; /* periods in seconds, randomized per voice (~6-30 s) */
+    float  drift_gain, drift_rate, pan_center;  /* per-block computed in the engine */
     wb_svf_t filt;
     uint32_t rng;
 } wb_voice_t;
@@ -72,6 +78,17 @@ static inline void wb_voice_init(wb_voice_t *v, uint32_t seed) {
     v->glo = 1.0f; v->ghi = 1.0f; v->gfreq = 0.3f;
     v->gain_cur = 0.0f; v->rate_cur = 1.0f;
     v->rng = seed ? seed : 0x1234567u;
+    /* Drift LFOs: random slow period + phase per voice/param -> each layer on its own clock. Seed
+     * from a SEPARATE, decorrelated stream so v->rng (the grain scatter/pan stream) is untouched —
+     * keeps Drift=0 bit-identical to before this feature. */
+    uint32_t dr = (seed ? seed : 0x1234567u) ^ 0x9E3779B9u;
+    for (int k = 0; k < 3; k++) {
+        dr ^= dr << 13; dr ^= dr >> 17; dr ^= dr << 5;
+        v->drift_ph[k]  = (double)(dr >> 8) * (1.0 / 16777216.0);
+        dr ^= dr << 13; dr ^= dr >> 17; dr ^= dr << 5;
+        v->drift_per[k] = 6.0f + (float)(dr >> 8) * (1.0f / 16777216.0f) * 24.0f;   /* 6..30 s */
+    }
+    v->drift_gain = 1.0f; v->drift_rate = 1.0f; v->pan_center = 0.0f;
     wb_svf_reset(&v->filt);
 }
 
@@ -105,7 +122,7 @@ static inline void wb_voice_spawn(wb_voice_t *v, const wb_ring_t *rb, float eff_
     g->age = 0.0f;
     g->dur = wb_clampf(v->size * WB_SR, 32.0f, v->window * 2.0f + 64.0f);
     g->rate = eff_rate;
-    float pan = wb_clampf(v->spread * wb_rng_bi(&v->rng), -1.0f, 1.0f);
+    float pan = wb_clampf(v->pan_center + v->spread * wb_rng_bi(&v->rng), -1.0f, 1.0f);
     g->gl = 0.5f * (1.0f - pan);
     g->gr = 0.5f * (1.0f + pan);
     g->cut = (v->fmode == WB_F_RANDOM)
@@ -118,7 +135,7 @@ static inline void wb_voice_process(wb_voice_t *v, const wb_ring_t *rb,
                                     float *outL, float *outR) {
     /* param smoothing */
     v->gain_cur += (v->gain - v->gain_cur) * 0.002f;
-    float eff = wb_voice_eff_rate(v);
+    float eff = wb_voice_eff_rate(v) * v->drift_rate;   /* Drift: subtle per-voice wow/detune */
     v->rate_cur += (eff - v->rate_cur) * 0.01f;
     if (v->gain_cur < 1e-5f && v->gain < 1e-5f) {
         /* fully idle (silent, no incoming gain): its output would be sum*~0 anyway, so keep the
@@ -196,8 +213,8 @@ static inline void wb_voice_process(wb_voice_t *v, const wb_ring_t *rb,
         sumR = wb_crush(sumR, v->crush);
     }
 
-    *outL += sumL * v->gain_cur;
-    *outR += sumR * v->gain_cur;
+    *outL += sumL * v->gain_cur * v->drift_gain;   /* Drift: slow per-voice level breathing */
+    *outR += sumR * v->gain_cur * v->drift_gain;
 }
 
 #endif /* WB_GRAIN_H */

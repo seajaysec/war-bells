@@ -115,6 +115,7 @@ typedef struct wb {
     float evolve;                     /* 0 off .. 1 fast drift */
     int   evo_range;                  /* 0 Soft 1 Mid 2 Wild */
     double evo_acc; uint32_t evo_rng;
+    float drift;                      /* 0 off .. 1: per-voice slow LFOs wander gain/pan/rate (the cloud breathes) */
 
     float duck;                       /* 0..1 sidechain wet to input level (blooms in gaps) */
     float width;                      /* reverb stereo width (1.0 = current wide default) */
