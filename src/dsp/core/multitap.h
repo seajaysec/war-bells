@@ -49,6 +49,13 @@ static inline void wb_delay_init(wb_delay_t *d, float *l, float *r, int len) {
     wb_pshift_init(&d->pl); wb_pshift_init(&d->pr);
 }
 
+/* Per-tap constant-power pan -> a stereo / ping-pong image. Applied to the stereo READ only (the
+ * feedback path stays mono-faithful), so a mono input fans the echoes out across the field while a
+ * stereo input keeps its image with a gentle tilt. Always on — aligns with how the grains + reverb
+ * already spread mono to stereo. Taps alternate L/R, narrowing on the later (quieter) taps. */
+static const float WB_TAP_PAN_L[4] = { 0.951f, 0.309f, 0.908f, 0.831f };  /* pos -0.6 +0.6 -0.45 +0.5 */
+static const float WB_TAP_PAN_R[4] = { 0.309f, 0.951f, 0.418f, 0.556f };
+
 static inline void wb_delay_readtap(const wb_delay_t *d, float tsec,
                                     float *ol, float *or_) {
     float dpos = (float)d->w - tsec * WB_SR;
@@ -72,10 +79,10 @@ static inline void wb_delay_process(wb_delay_t *d, float inL, float inR,
     }
     float sL = 0.0f, sR = 0.0f, t1L, t1R, tl, tr;
     wb_delay_readtap(d, d->t[0], &t1L, &t1R);
-    sL += t1L * d->g[0]; sR += t1R * d->g[0];
+    sL += t1L * d->g[0] * WB_TAP_PAN_L[0]; sR += t1R * d->g[0] * WB_TAP_PAN_R[0];
     for (int i = 1; i < 4; i++) {
         wb_delay_readtap(d, d->t[i], &tl, &tr);
-        sL += tl * d->g[i]; sR += tr * d->g[i];
+        sL += tl * d->g[i] * WB_TAP_PAN_L[i]; sR += tr * d->g[i] * WB_TAP_PAN_R[i];
     }
     /* filter character */
     if (d->fmode == WB_F_SWEEP) {

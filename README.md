@@ -20,7 +20,7 @@ Eleven effects in four families, each with four named variations:
 | **Loops** | Glide · Seq · Stack | layered short loops at different speeds — rhythms & octaves |
 | **Grains** | Cloud · Drone · Chain | clouds of tiny fragments — washes, drones, textures |
 | **Glitch** | Arp · Cutup · Chop | real-time rearrangement — stutters & bursts |
-| **Delays** | Taps · Warp | a multi-tap delay line — rhythmic, filtered, pitched echoes |
+| **Delays** | Taps · Warp | a **stereo** multi-tap delay line — rhythmic, filtered, pitched, ping-pong echoes |
 
 Each effect's four variations have their own short labels (e.g. Stack → `oct+ / oct- / x2 /
 range`, Taps → `line / swng / trip / wide`).
