@@ -117,7 +117,7 @@ int main(void){
     /* presets */
     for(int p=0;p<19;p++){ caseT *c=newcase(PS[p]); add(c,"preset",PS[p]); }
     /* single-param sweeps over high-risk floats (from a wet Stack base) */
-    const char *SW[]={"sustain","space","activity","repeats","mod_depth","mot_depth","warp","effect_vol","mix","duck","rev_tone","drift"};
+    const char *SW[]={"sustain","space","activity","repeats","mod_depth","mot_depth","warp","effect_vol","mix","duck","rev_tone","drift","stereo"};
     for(unsigned s=0;s<sizeof(SW)/sizeof(*SW);s++){
         double steps[5]={0.0,0.25,0.5,0.75,1.0};
         for(int i=0;i<5;i++){ char nm[48],vv[16]; snprintf(nm,sizeof(nm),"sweep:%s=%.2f",SW[s],steps[i]); snprintf(vv,16,"%.3f",steps[i]);

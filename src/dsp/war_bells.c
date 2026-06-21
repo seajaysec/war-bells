@@ -224,6 +224,11 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         }
     }
 
+    /* Stereo: global M/S output width. 0.5 -> w=1 (exact identity, deadzone-bypassed); <0.5 narrows
+     * toward mono, >0.5 widens. A mono signal has no Side so it stays centered (mono-safe). */
+    float stereo_w = w->stereo * 2.0f;
+    int   stereo_on = (stereo_w < 0.998f || stereo_w > 1.002f);
+
     for (int i = 0; i < frames; i++) {
         float inL = wb_i16_to_f(audio[i*2])   * w->input_gain;
         float inR = wb_i16_to_f(audio[i*2+1]) * w->input_gain;
@@ -300,6 +305,13 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         /* master makeup on the PROCESSED signal (restores loudness lost to the staging headroom).
          * Applied BEFORE the bypass crossfade so true bypass stays unity (not 1.35x dry). */
         outL *= 1.35f; outR *= 1.35f;
+
+        /* global stereo width (M/S) on the processed signal — before the bypass crossfade so true
+         * bypass stays unity. Neutral is exact-bypassed, so default output is bit-identical. */
+        if (stereo_on) {
+            float M = (outL + outR) * 0.5f, S = (outL - outR) * 0.5f * stereo_w;
+            outL = M + S; outR = M - S;
+        }
 
         /* bypass output: Trails = effect tail (already decaying via faded feed) + clean dry rising;
          * hard = crossfade straight to dry (tail cut). */

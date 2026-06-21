@@ -119,6 +119,7 @@ typedef struct wb {
 
     float duck;                       /* 0..1 sidechain wet to input level (blooms in gaps) */
     float width;                      /* reverb stereo width (1.0 = current wide default) */
+    float stereo;                     /* global output M/S width: 0 mono .. 0.5 neutral .. 1 wide */
     int   preset;                     /* last-selected character preset (display) */
     float tempo_drift;                /* Free-mode bounded random walk on tempo */
     uint32_t drift_rng;

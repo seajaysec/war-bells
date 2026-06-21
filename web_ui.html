@@ -305,6 +305,10 @@
    to), turn up to low-pass it (darker, warmer). It filters the reverb <i>send</i>, so it stops mud at the
    source rather than masking it. <span class="ictl" data-k="rev_tone"></span></p>
   <div class="grid g4" id="revGrid"></div>
+  <p class="lead"><b>Stereo</b> sets the overall output width (Space FX page). Centre is neutral; turn down
+   to narrow toward mono, up to widen. It boosts the <i>side</i> of the image, so it opens up a mono source's
+   stereo halo (the panned grains, the ping-pong delay, the reverb) while leaving a centred mono dry untouched
+   — mono-safe. <span class="ictl" data-k="stereo"></span></p>
   <div class="tip">Pitch mod lives here too — <span class="ictl" data-k="mod_depth"></span>
    <span class="ictl" data-k="mod_rate"></span> from gentle chorus to seasick wobble.</div>
 </section>
@@ -549,7 +553,7 @@ const P={
  eco:{name:"Eco CPU",t:"enum",o:["Off","On"],v:0},
  bypass_style:{name:"Byp Mode",t:"enum",o:["Buf","Trail","True"],v:0},
  shimmer:{name:"Shimmer",t:"enum",o:["Off","Oct+","Oct-","5th"],v:0},
- width:{name:"Width",t:"pct",v:1},
+ width:{name:"Width",t:"pct",v:1},stereo:{name:"Stereo",t:"pct",v:.5},
  sustain:{name:"Sustain",t:"pct",v:0},
  warp:{name:"Warp",t:"pct",v:.5},
  pitch_scale:{name:"Scale",t:"enum",o:["Off","Maj","Min","Pent","Oct","5th"],v:0},
@@ -566,7 +570,7 @@ const PAGES={
  root:{title:"Effect",knobs:["effect","variation","activity","repeats","rev_tone","mix","space","filter"]},
  tone:{title:"Tone",knobs:["shape","filter_res","effect_vol","grain_env","pitch_scale"]},
  time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
- spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","sustain","warp","mod_depth","mod_rate"]},
+ spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","stereo","sustain","warp","mod_depth","mod_rate"]},
  motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},
  generate:{title:"Generate",knobs:["evolve","drift","evo_range","dice"]},
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
