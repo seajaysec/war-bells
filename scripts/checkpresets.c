@@ -9,10 +9,11 @@ audio_fx_api_v2_t *move_audio_fx_init_v2(const host_api_v1_t *host);
 static uint32_t R=22u; static inline float nz(void){ R^=R<<13;R^=R>>17;R^=R<<5; return ((int)(R>>16)-16384)/16384.0f; }
 int main(void){
     audio_fx_api_v2_t *api = move_audio_fx_init_v2(0);
-    const char *PS[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
-                        "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
+    const char *PS[22]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
+                        "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
+                        "Drifting","Expanse","MonoTap"};
     printf("preset       out_rms   peak  (input rms ~ 4600)\n");
-    for(int p=0;p<19;p++){
+    for(int p=0;p<22;p++){
         void *inst=api->create_instance(".",0);
         api->set_param(inst,"preset",PS[p]);
         int16_t buf[256]; double ph=0; double sq=0; int pk=0; long n=0;

@@ -44,8 +44,9 @@ static const char *MOT_RATE[7]    = {"8bar","4bar","2bar","1bar","1/2","1/4","1/
 static const char *MOT_SHAPE[4]   = {"Sine","Tri","Ramp","Rand"};
 static const char *EVORANGE[3]    = {"Soft","Mid","Wild"};
 static const char *DICE_OPTS[2]   = {"-","Roll"};
-static const char *PRESET_OPTS[19] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
+static const char *PRESET_OPTS[22] = {"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                                      "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
+                                      "Drifting","Expanse","MonoTap"};
 static const char *HOLDSTYLE[2]   = {"Latch","Gate"};
 static const char *INPUT_OPTS[2]  = {"Ster","Mono"};
 static const char *ROUTE_OPTS[2]  = {"Post","Pre"};
@@ -61,7 +62,7 @@ static const float BYPASS_LAG[3]  = {0.005f, 0.6f, 0.002f};
  * variation labels. %% = a literal percent unit. "name" is the on-screen label (short). */
 static const char *CHAIN_PARAMS_FMT =
 "["
-"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\",\"Trails\",\"Spiral\"]},"
+"{\"key\":\"preset\",\"name\":\"Preset\",\"type\":\"enum\",\"options\":[\"Init\",\"Arp\",\"Stutr\",\"Chop\",\"Glass\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Birds\",\"Taps\",\"Warp\",\"Sheen\",\"Motn\",\"Evolv\",\"Scale\",\"Bloom\",\"Trails\",\"Spiral\",\"Drifting\",\"Expanse\",\"MonoTap\"]},"
 "{\"key\":\"effect\",\"name\":\"Effect\",\"type\":\"enum\",\"options\":[\"Arp\",\"Cutup\",\"Chop\",\"Glide\",\"Seq\",\"Stack\",\"Cloud\",\"Drone\",\"Chain\",\"Taps\",\"Warp\"]},"
 "{\"key\":\"variation\",\"name\":\"Var\",\"type\":\"enum\",\"options\":[%s]},"
 "{\"key\":\"activity\",\"name\":\"Activity\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
@@ -204,7 +205,7 @@ void wb_params_defaults(wb_t *w) {
  * resets macros + value-adds to neutral so it sounds the same regardless of prior state. */
 static void apply_preset(wb_t *w, int idx) {
     if (idx < 0) idx = 0;
-    if (idx > 18) idx = 18;
+    if (idx > 21) idx = 21;
     w->preset = idx;
     /* neutral baseline (each case overrides what it needs) */
     w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
@@ -274,6 +275,16 @@ static void apply_preset(wb_t *w, int idx) {
         w->effect=5; w->variation=0; w->activity=0.40f; w->repeats=0.70f; w->shape=0.55f;
         w->mix=0.85f; w->space=0.75f; w->reverb_mode=3; w->sustain=0.7f;
         w->mot_target=6; w->mot_rate=2; w->mot_depth=0.35f; w->mot_shape=0; break;   /* Motion -> Warp */
+    case 19: /* Drifting — a grain cloud that slowly breathes + wanders (Drift showcase) */
+        w->effect=6; w->variation=1; w->activity=0.55f; w->repeats=0.60f; w->shape=0.50f;
+        w->mix=0.85f; w->effect_vol=0.55f; w->space=0.45f; w->reverb_mode=2; w->drift=0.72f; break;
+    case 20: /* Expanse — wide shimmer wash with the stereo image opened up (Stereo width showcase) */
+        w->effect=6; w->variation=1; w->activity=0.50f; w->repeats=0.55f; w->shape=0.55f;
+        w->mix=0.95f; w->effect_vol=0.50f; w->space=0.65f; w->reverb_mode=3; w->shimmer=1;
+        w->stereo=0.85f; break;
+    case 21: /* MonoTap — multitap delay that ping-pongs across the field (stereo-delay showcase) */
+        w->effect=9; w->variation=0; w->activity=0.60f; w->repeats=0.60f; w->shape=0.45f;
+        w->mix=0.80f; w->effect_vol=0.80f; w->space=0.12f; w->reverb_mode=1; break;
     }
     w->params_dirty = 1;
     wb_apply_all(w);
@@ -463,7 +474,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         return;
     }
 
-    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,19)); }
+    if (strcmp(key,"preset")==0)        { apply_preset(w, enum_parse(val,PRESET_OPTS,22)); }
     else if (strcmp(key,"effect")==0)   { w->effect = enum_parse(val,EFFECT_OPTS,WB_NEFFECTS); w->params_dirty=1; }
     else if (strcmp(key,"variation")==0){ w->variation = variation_parse(w,val); w->params_dirty=1; }
     else if (strcmp(key,"activity")==0) { w->activity = wb_clampf((float)atof(val),0,1); w->params_dirty=1; }

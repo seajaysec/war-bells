@@ -28,7 +28,7 @@ for t in tests/test_*.c; do
 done
 
 # --- preset parity: the web demo's preset NAMES must match the C engine enum (single source of truth) ---
-c_names=$(sed -n '/PRESET_OPTS\[19\]/,/};/p' src/dsp/params.c | grep -oE '"[A-Za-z]+"' | tr -d '"' | tr '\n' ' ')
+c_names=$(sed -n '/PRESET_OPTS\[[0-9]/,/};/p' src/dsp/params.c | grep -oE '"[A-Za-z]+"' | tr -d '"' | tr '\n' ' ')
 js_names=$(sed -n '/const PRESETS=/,/^];/p' web_ui.html | grep -oE 'n:"[A-Za-z]+"' | sed -E 's/n:"//;s/"//' | tr '\n' ' ')
 if [ -n "$c_names" ] && [ "$c_names" = "$js_names" ]; then echo "OK  preset-parity ($c_names)";
 else echo "FAIL preset-parity (web != engine)"; echo "  C : $c_names"; echo "  JS: $js_names"; fail=1; fi
