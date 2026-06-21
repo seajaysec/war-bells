@@ -91,6 +91,7 @@ static const char *CHAIN_PARAMS_FMT =
 "{\"key\":\"mot_depth\",\"name\":\"Mot Dep\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"mot_shape\",\"name\":\"Wave\",\"type\":\"enum\",\"options\":[\"Sine\",\"Tri\",\"Ramp\",\"Rand\"]},"
 "{\"key\":\"evolve\",\"name\":\"Evolve\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
+"{\"key\":\"drift\",\"name\":\"Drift\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.02,\"unit\":\"%%\"},"
 "{\"key\":\"evo_range\",\"name\":\"Range\",\"type\":\"enum\",\"options\":[\"Soft\",\"Mid\",\"Wild\"]},"
 "{\"key\":\"dice\",\"name\":\"Dice\",\"type\":\"enum\",\"options\":[\"-\",\"Roll\"]},"
 "{\"key\":\"hold\",\"name\":\"Hold\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},"
@@ -136,8 +137,8 @@ static const char *UI_HIERARCHY_JSON =
    "\"params\":[{\"key\":\"reverb_mode\",\"name\":\"Reverb\"},{\"key\":\"shimmer\",\"name\":\"Shimmer\"},{\"key\":\"width\",\"name\":\"Width\"},{\"key\":\"sustain\",\"name\":\"Sustain\"},{\"key\":\"warp\",\"name\":\"Warp\"},{\"key\":\"mod_depth\",\"name\":\"Mod Dep\"},{\"key\":\"mod_rate\",\"name\":\"Mod Rate\"}]},"
  "\"motion\":{\"name\":\"Motion\",\"knobs\":[\"mot_target\",\"mot_rate\",\"mot_depth\",\"mot_shape\"],"
    "\"params\":[{\"key\":\"mot_target\",\"name\":\"Mot Dest\"},{\"key\":\"mot_rate\",\"name\":\"Mot Rate\"},{\"key\":\"mot_depth\",\"name\":\"Mot Dep\"},{\"key\":\"mot_shape\",\"name\":\"Wave\"}]},"
- "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"evo_range\",\"dice\"],"
-   "\"params\":[{\"key\":\"evolve\",\"name\":\"Evolve\"},{\"key\":\"evo_range\",\"name\":\"Range\"},{\"key\":\"dice\",\"name\":\"Dice\"}]},"
+ "\"generate\":{\"name\":\"Generate\",\"knobs\":[\"evolve\",\"drift\",\"evo_range\",\"dice\"],"
+   "\"params\":[{\"key\":\"evolve\",\"name\":\"Evolve\"},{\"key\":\"drift\",\"name\":\"Drift\"},{\"key\":\"evo_range\",\"name\":\"Range\"},{\"key\":\"dice\",\"name\":\"Dice\"}]},"
  "\"perform\":{\"name\":\"Perform\",\"knobs\":[\"reverse\",\"hold\",\"hold_style\",\"duck\"],"
    "\"params\":[{\"key\":\"reverse\",\"name\":\"Reverse\"},{\"key\":\"hold\",\"name\":\"Hold\"},{\"key\":\"hold_style\",\"name\":\"Hold Mode\"},{\"key\":\"duck\",\"name\":\"Bloom\"}]},"
  "\"looper\":{\"name\":\"Looper\",\"knobs\":[\"looper_on\",\"transport\",\"loop_level\",\"loop_speed\",\"loop_reverse\",\"loop_route\",\"loop_only\"],"
@@ -187,7 +188,7 @@ void wb_params_defaults(wb_t *w) {
     w->grain_env = 0; w->preset = 0; w->tempo_drift = 0.0f;
     w->shimmer = 0; w->pitch_scale = 0;
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
-    w->evolve = 0.0f; w->evo_range = 1;
+    w->evolve = 0.0f; w->evo_range = 1; w->drift = 0.0f;
     w->duck = 0.0f; w->width = 1.0f;
     w->sustain = 0.0f; w->warp = 0.5f; w->warp_eff = 0.5f;
     w->user_slot = 1;
@@ -207,7 +208,7 @@ static void apply_preset(wb_t *w, int idx) {
     /* neutral baseline (each case overrides what it needs) */
     w->reverse = 0; w->shimmer = 0; w->pitch_scale = 0;
     w->mot_target = 0; w->mot_rate = 3; w->mot_depth = 0.4f; w->mot_shape = 0;
-    w->evolve = 0.0f; w->evo_range = 1; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
+    w->evolve = 0.0f; w->evo_range = 1; w->drift = 0.0f; w->width = 1.0f; w->duck = 0.0f; w->hold = 0;
     w->mod_depth = 0.0f; w->mod_rate = 0.40f; w->filter = 1.0f; w->filter_res = 0.1f;
     w->effect_vol = 0.72f; w->grain_env = 0; w->reverb_mode = 0; w->bypass_trails = 0;
     w->sustain = 0.0f; w->warp = 0.5f; w->rev_tone = 0.5f;
@@ -423,6 +424,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
         if (json_f(val,"mot_depth",&v)==0) w->mot_depth=v;
         if (json_f(val,"mot_shape",&v)==0) w->mot_shape=(int)v;
         if (json_f(val,"evolve",&v)==0) w->evolve=v;
+        if (json_f(val,"drift",&v)==0) w->drift=v;
         if (json_f(val,"evo_range",&v)==0) w->evo_range=(int)v;
         if (json_f(val,"duck",&v)==0) w->duck=v;
         if (json_f(val,"width",&v)==0) w->width=v;
@@ -486,6 +488,7 @@ void wb_params_set(wb_t *w, const char *key, const char *val) {
     else if (strcmp(key,"mot_depth")==0){ w->mot_depth = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"mot_shape")==0){ w->mot_shape = enum_parse(val,MOT_SHAPE,4); }
     else if (strcmp(key,"evolve")==0)   { w->evolve = wb_clampf((float)atof(val),0,1); }
+    else if (strcmp(key,"drift")==0)    { w->drift = wb_clampf((float)atof(val),0,1); }
     else if (strcmp(key,"evo_range")==0){ w->evo_range = enum_parse(val,EVORANGE,3); }
     else if (strcmp(key,"dice")==0)     { if (enum_parse(val,DICE_OPTS,2)==1) wb_evolve_roll(w,2); }
     else if (strcmp(key,"subdiv")==0)   { w->subdiv = enum_parse(val,SUBDIV_OPTS,6); w->params_dirty=1; }
@@ -554,6 +557,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
     if (strcmp(key,"mot_depth")==0)   return snprintf(buf,buf_len,"%.3f",w->mot_depth);
     if (strcmp(key,"mot_shape")==0)   return snprintf(buf,buf_len,"%s",MOT_SHAPE[w->mot_shape]);
     if (strcmp(key,"evolve")==0)      return snprintf(buf,buf_len,"%.3f",w->evolve);
+    if (strcmp(key,"drift")==0)       return snprintf(buf,buf_len,"%.3f",w->drift);
     if (strcmp(key,"evo_range")==0)   return snprintf(buf,buf_len,"%s",EVORANGE[w->evo_range]);
     if (strcmp(key,"dice")==0)        return snprintf(buf,buf_len,"-");  /* momentary */
     if (strcmp(key,"subdiv")==0)      return snprintf(buf,buf_len,"%s",SUBDIV_OPTS[w->subdiv]);
@@ -597,7 +601,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           "\"loop_quantize\":%d,\"loop_only\":%d,\"loop_burst\":%d,\"input_mode\":%d,\"bypass\":%d,\"bypass_style\":%d,"
           "\"shimmer\":%d,\"pitch_scale\":%d,\"mot_target\":%d,\"mot_rate\":%d,\"mot_depth\":%.4f,\"mot_shape\":%d,"
           "\"evolve\":%.4f,\"evo_range\":%d,\"duck\":%.4f,\"width\":%.4f,\"eco\":%d,\"bypass_trails\":%d,"
-          "\"sustain\":%.4f,\"warp\":%.4f,\"rev_tone\":%.4f}",
+          "\"sustain\":%.4f,\"warp\":%.4f,\"rev_tone\":%.4f,\"drift\":%.4f}",
           w->effect,w->variation,w->activity,w->repeats,w->shape,w->filter,w->filter_res,w->mix,
           w->effect_vol,w->space,w->reverb_mode,w->mod_depth,w->mod_rate,w->subdiv,w->tempo_manual,
           w->tempo_src,w->reverse,w->input_gain,w->loop_level,w->loop_speed,
@@ -605,7 +609,7 @@ int wb_params_get(wb_t *w, const char *key, char *buf, int buf_len) {
           w->loop_reverse,w->loop_fade,w->loop_fademode,w->loop_route,w->loop_order,
           w->loop_quantize,w->loop_only,w->loop_burst,w->input_mono,w->bypass,w->bypass_style,
           w->shimmer,w->pitch_scale,w->mot_target,w->mot_rate,w->mot_depth,w->mot_shape,
-          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails,w->sustain,w->warp,w->rev_tone);
+          w->evolve,w->evo_range,w->duck,w->width,w->eco,w->bypass_trails,w->sustain,w->warp,w->rev_tone,w->drift);
     }
     if (strcmp(key,"chain_params")==0) {
         char vo[128];

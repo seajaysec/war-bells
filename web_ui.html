@@ -337,6 +337,9 @@
     <div class="panel"><h3>Evolve &amp; Dice</h3><p>Clocked, bounded re-rolling for textures that drift
       and never repeat; Dice re-rolls now. <span class="ictl" data-k="evolve"></span>
       <span class="ictl" data-k="evo_range"></span> <span class="ictl" data-k="dice"></span></p></div>
+    <div class="panel"><h3>Drift</h3><p>Gives each of the 6 grain voices its own slow, independent LFOs on
+      level, pan &amp; pitch — the cloud breathes and moves continuously, each layer on its own clock. Where
+      Evolve jumps and Motion sweeps one macro, Drift is the per-voice wander. <span class="ictl" data-k="drift"></span></p></div>
     <div class="panel"><h3>Bloom</h3><p>Ducks the wet under your playing so the effect swells back in the
       gaps between notes (Perform page) — internal self-sidechain, distinct from a chain ducker.
       <span class="ictl" data-k="duck"></span></p></div>
@@ -555,7 +558,7 @@ const P={
  mot_rate:{name:"Mot Rate",t:"enum",o:["8bar","4bar","2bar","1bar","1/2","1/4","1/8"],v:3},
  mot_depth:{name:"Mot Dep",t:"pct",v:.4},
  mot_shape:{name:"Wave",t:"enum",o:["Sine","Tri","Ramp","Rand"],v:0},
- evolve:{name:"Evolve",t:"pct",v:0},
+ evolve:{name:"Evolve",t:"pct",v:0},drift:{name:"Drift",t:"pct",v:0},
  evo_range:{name:"Range",t:"enum",o:["Soft","Mid","Wild"],v:1},
  dice:{name:"Dice",t:"enum",o:["-","Roll"],v:0},
 };
@@ -565,7 +568,7 @@ const PAGES={
  time:{title:"Time",knobs:["tempo_src","subdiv","tempo"]},
  spacefx:{title:"Space FX",knobs:["reverb_mode","shimmer","width","sustain","warp","mod_depth","mod_rate"]},
  motion:{title:"Motion",knobs:["mot_target","mot_rate","mot_depth","mot_shape"]},
- generate:{title:"Generate",knobs:["evolve","evo_range","dice"]},
+ generate:{title:"Generate",knobs:["evolve","drift","evo_range","dice"]},
  perform:{title:"Perform",knobs:["reverse","hold","hold_style","duck"]},
  looper:{title:"Looper",knobs:["looper_on","transport","loop_level","loop_speed","loop_reverse","loop_route","loop_only"]},
  user:{title:"User",knobs:["user_slot","user_op"]},

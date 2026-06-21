@@ -201,6 +201,29 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
         }
     }
 
+    /* Drift: advance each voice's independent slow LFOs (control rate) and set its per-voice
+     * gain/pan/rate wander. Off (drift ~0) -> neutral (1,1,0), so the grain cloud is unchanged. */
+    if (w->drift > 1e-4f) {
+        float ddt = (float)frames / (float)WB_SR;
+        for (int v = 0; v < WB_NV; v++) {
+            wb_voice_t *vc = &w->voices[v];
+            for (int k = 0; k < 3; k++) {
+                vc->drift_ph[k] += (double)(ddt / vc->drift_per[k]);
+                if (vc->drift_ph[k] >= 1.0) vc->drift_ph[k] -= 1.0;
+            }
+            float lg = wb_sin_turns((float)vc->drift_ph[0]);   /* -1..1 */
+            float lp = wb_sin_turns((float)vc->drift_ph[1]);
+            float lr = wb_sin_turns((float)vc->drift_ph[2]);
+            vc->drift_gain = 1.0f - w->drift * 0.5f * (0.5f - 0.5f * lg);  /* level: [1-0.5d .. 1] */
+            vc->pan_center = w->drift * 0.6f * lp;                         /* pan: +/- across field */
+            vc->drift_rate = 1.0f + w->drift * 0.03f * lr;                 /* rate: +/-3% wow */
+        }
+    } else {
+        for (int v = 0; v < WB_NV; v++) {
+            w->voices[v].drift_gain = 1.0f; w->voices[v].drift_rate = 1.0f; w->voices[v].pan_center = 0.0f;
+        }
+    }
+
     for (int i = 0; i < frames; i++) {
         float inL = wb_i16_to_f(audio[i*2])   * w->input_gain;
         float inR = wb_i16_to_f(audio[i*2+1]) * w->input_gain;

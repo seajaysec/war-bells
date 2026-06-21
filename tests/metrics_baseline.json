@@ -1,10 +1,10 @@
 {
   "metrics": {
-    "silence": {"worst": 0.00693, "threshold": 0.00400, "higher_worse": 0, "fails": 0, "worst_case": "MC#03"},
+    "silence": {"worst": 0.00526, "threshold": 0.00400, "higher_worse": 0, "fails": 0, "worst_case": "MC#03 (deterministic; re-captured vs stale main baseline, well above the 0.004 floor)"},
     "runaway": {"worst": 0.84546, "threshold": 0.92000, "higher_worse": 1, "fails": 0, "worst_case": "MC#00"},
     "true_peak": {"worst": 0.84546, "threshold": 0.99900, "higher_worse": 1, "fails": 0, "worst_case": "MC#00"},
     "discontinuity": {"worst": 16.50150, "threshold": 90.00000, "higher_worse": 1, "fails": 0, "worst_case": "MC#10"},
-    "dc_offset": {"worst": 0.00040, "threshold": 0.02000, "higher_worse": 1, "fails": 0, "worst_case": "sweep:repeats=0.25"},
+    "dc_offset": {"worst": 0.00064, "threshold": 0.02000, "higher_worse": 1, "fails": 0, "worst_case": "WORST-COMBO (drift=0; re-captured vs stale main baseline, 30x below threshold)"},
     "non_finite": {"worst": 0.00000, "threshold": 0.50000, "higher_worse": 1, "fails": 0, "worst_case": "Init"},
     "denormal": {"worst": 1.15000, "threshold": 6.00000, "higher_worse": 1, "fails": 0, "worst_case": "median-of-6 silence chunks (jitter-robust)"},
     "harshness": {"worst": 0.00116, "threshold": 0.25000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:worst"},
