@@ -52,3 +52,9 @@ crashing until rebuilt this way.)
 - **Denormal tails = silent CPU killer** — the #1 mystery reverb/delay CPU spike on decay-to-silence.
 - The **symptom-patching trap**: if "no-clip" tests pass but it still sounds bad, you're measuring level, not
   quality — add a quality probe (see `audio-dsp-testing`).
+- **A new modulator that randomly inits per-voice state must seed from a DECORRELATED stream, not the existing
+  per-voice RNG.** Drawing init from the voice's own `rng` advances that stream, so the grain scatter/pan it
+  also feeds come out different — and your "depth=0 = bypass" silently breaks: existing presets render to a
+  *different* random realization (same character, not bit-identical). Seed the modulator from `seed ^ const`
+  (or a dedicated rng) and **prove it**: a `git stash` pristine run must produce byte-identical stress output
+  at depth=0. (Bit us when adding per-voice Drift LFOs.)
