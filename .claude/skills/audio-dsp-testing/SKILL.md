@@ -44,12 +44,15 @@ function. That's the extensibility that makes it self-improving.
 - **aliasing** = inharmonic energy in the **HF band only** — else a tone through a big reverb reads as
   "aliasing" (legit modal density, false positive). Calibrate against a *clean* reference first.
 - **dc_offset / true_peak** are cheap and catch the sneaky stuff (DC ×16 in combs; inter-sample overs).
-- **Wall-clock metrics (e.g. `denormal` = CPU/block on decay) must aggregate with MEDIAN, not MAX.** A real
-  denormal stall slows *every* decay block (median rises); a single slow chunk is just OS scheduler jitter
-  (median rejects it). Taking the max turns the probe into a machine-load gauge that throws false `REGRESSION`
-  failures under CI load — it'll fail ~50% of runs on unchanged code, worst *under* load. Median-of-6 cut the
-  idle variance ~20× here and held flat under 4 busy cores. If only a timing metric regresses, re-run 3–5× and
-  `git stash`-test pristine before believing it; deterministic metrics (silence/dc/aliasing/…) don't do this.
+- **Wall-clock metrics (e.g. `denormal` = CPU/block on decay): aggregate with MEDIAN *and* exempt from the
+  baseline ratchet — gate on the ABSOLUTE threshold only.** A real denormal stall slows *every* decay block
+  (median rises); a single slow chunk is just OS jitter (median rejects it). Max made it a machine-load gauge
+  that failed ~50% of runs on unchanged code. Median-of-6 cut idle variance ~20× — but it's **not enough on its
+  own**: a heavily-loaded CI runner still spiked the median to 1.34 vs a 1.15 baseline and failed the ±5%
+  regression check (broke a release). The real fix: a wall-clock metric is machine-dependent, so ratcheting it
+  vs a committed baseline is *fundamentally* flaky — `if(k==M_DENORM) continue;` in the regression loop and let
+  the absolute threshold (6.0; real stalls are 10–100×) be the gate. Deterministic metrics (silence/dc/aliasing)
+  still ratchet normally — they don't have this problem.
 
 ## Self-improve (references/self-improvement.md + scripts/)
 

@@ -189,6 +189,11 @@ int main(void){
     if(bl){ char line[512];
         while(fgets(line,sizeof(line),bl)){
             for(int k=0;k<M_N;k++){ char pat[64]; snprintf(pat,sizeof(pat),"\"%s\":",MNAME[k]);
+                /* denormal is a WALL-CLOCK timing metric (CPU/block) — machine-dependent and noisy on
+                 * loaded CI runners. The median aggregation tames the variance, but ratcheting it ±5%
+                 * vs a baseline still false-positives under load. Gate it on the ABSOLUTE threshold
+                 * (6.0; real denormal stalls are 10-100x) only — skip the baseline-regression check. */
+                if(k==M_DENORM) continue;
                 char *p=strstr(line,pat); if(!p) continue;
                 char *w=strstr(p,"\"worst\":"); if(!w) continue; double bw=atof(w+8);
                 double cur=ag[k].worst; int worse = MHW[k] ? (cur > bw*1.05 + 1e-4) : (cur < bw*0.95 - 1e-4);
