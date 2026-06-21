@@ -48,8 +48,9 @@ static void gen(int16_t *buf, int n, int mode, double *ph, double f0, long *t){
 
 /* ---- one case ---- */
 typedef struct { char name[48]; char key[24][24]; char val[24][24]; int nset; int spectral; int transition; } caseT;
-static const char *PSALL[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
-                              "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
+static const char *PSALL[22]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
+                              "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
+                              "Drifting","Expanse","MonoTap"};
 
 static double now_us(void){ struct timespec ts; clock_gettime(CLOCK_MONOTONIC,&ts); return ts.tv_sec*1e6 + ts.tv_nsec*1e-3; }
 
@@ -74,7 +75,7 @@ static void run_case(audio_fx_api_v2_t *api, const caseT *c, double out[M_N]){
     wb_acc acc; wb_acc_init(&acc, (long)SUST*128);
     double act_us=0; long act_blk=0;
     for(int b=0;b<SUST;b++){ gen(buf,128,SRC_MIX,&ph,0,&t);
-        if(c->transition && b>0 && b%172==0) api->set_param(inst,"preset",PSALL[(b/172)%19]); /* switch every ~0.5s */
+        if(c->transition && b>0 && b%172==0) api->set_param(inst,"preset",PSALL[(b/172)%22]); /* switch every ~0.5s */
         double t0=now_us(); api->process_block(inst,buf,128); act_us += now_us()-t0; act_blk++;
         float L[128],R[128]; for(int i=0;i<128;i++){ L[i]=buf[i*2]/32768.0f; R[i]=buf[i*2+1]/32768.0f; }
         wb_acc_feed(&acc,L,R,128);
@@ -112,10 +113,11 @@ static void add(caseT *c, const char *k, const char *v){ snprintf(c->key[c->nset
 
 int main(void){
     audio_fx_api_v2_t *api = move_audio_fx_init_v2(0);
-    const char *PS[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
-                        "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
+    const char *PS[22]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
+                        "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
+                        "Drifting","Expanse","MonoTap"};
     /* presets */
-    for(int p=0;p<19;p++){ caseT *c=newcase(PS[p]); add(c,"preset",PS[p]); }
+    for(int p=0;p<22;p++){ caseT *c=newcase(PS[p]); add(c,"preset",PS[p]); }
     /* single-param sweeps over high-risk floats (from a wet Stack base) */
     const char *SW[]={"sustain","space","activity","repeats","mod_depth","mot_depth","warp","effect_vol","mix","duck","rev_tone","drift","stereo"};
     for(unsigned s=0;s<sizeof(SW)/sizeof(*SW);s++){

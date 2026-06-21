@@ -196,10 +196,11 @@ int main(void){
      * (the master limiter must hold) under a sustained source. Feed sustained noise (builds the
      * reverb), measure avg level + the worst int16 peak. (The old check compared normalized rms to
      * an int16 threshold, so it was always true and caught neither failure.) */
-    { const char *PS[19]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
-                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral"};
+    { const char *PS[22]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud",
+                          "Drone","Birds","Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
+                          "Drifting","Expanse","MonoTap"};
       int silent=0, clipped=0, runaway=0, nonfin=0;
-      for(int p=0;p<19;p++){ api->set_param(inst,"preset",PS[p]);
+      for(int p=0;p<22;p++){ api->set_param(inst,"preset",PS[p]);
         double early=0; int latepk=0, ever=0, bad=0;
         /* ~7s of SUSTAINED input: catches slow feedback runaway to the rails (the bug the 50-block
          * check missed — e.g. Sheen's shimmer/reverb building to a wall over seconds). */
@@ -211,7 +212,7 @@ int main(void){
         if(ever >= 32767){ clipped++; printf("  HARD-CLIP preset %s\n", PS[p]); }
         if(latepk >= 30200){ runaway++; printf("  RUNAWAY preset %s (late peak %.3f of full)\n", PS[p], latepk/32768.0); }
         if(bad){ nonfin++; printf("  NON-FINITE preset %s\n", PS[p]); } }
-      CHECK("all 19 presets produce sound (none kill the engine)", silent==0);
+      CHECK("all 22 presets produce sound (none kill the engine)", silent==0);
       CHECK("no preset hard-clips (master limiter holds)", clipped==0);
       CHECK("no preset runs away to the rails under sustained input", runaway==0);
       CHECK("no preset goes non-finite", nonfin==0); }
