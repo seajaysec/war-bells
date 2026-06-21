@@ -55,6 +55,13 @@ function. That's the extensibility that makes it self-improving.
 
 - **Ratchet**: `scripts/ratchet.sh` copies a green `metrics_report.json` → `metrics_baseline.json` to lock a
   verified improvement. The gate then fails any future regression.
+- **Triage a "regression" before believing it.** A flagged metric is often a STALE baseline, not your change.
+  Two-step check: (1) is the metric's `worst_case` a NEUTRAL/off setting (the param you added at 0, a non-feature
+  case)? (2) does a `git stash` pristine build reproduce the same worst value? If both yes, your change is
+  innocent and the baseline drifted — re-capture **only that metric** (edit its `worst` in the baseline), don't
+  blanket-`ratchet` (that also overwrites noisy timing metrics like `denormal` with a tight one-off value and
+  re-introduces flakiness). Confirm the value is deterministic (same across 2 runs) before committing it.
+  (Both bit us adding Drift: `silence`/`dc_offset` were stale on main, worst-cases were depth=0.)
 - **Loop**: every escaped bug → add the probe that would've caught it → re-baseline. Every speedup → fold it
   into the template + bump version (and it propagates via `scripts/skill-update.sh`).
 - **Deep offline analysis**: `scripts/analyze.py` (THD/THD+N, true-peak @4×, spectral, null-test) for when the
