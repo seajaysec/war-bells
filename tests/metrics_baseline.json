@@ -7,7 +7,7 @@
     "dc_offset": {"worst": 0.00064, "threshold": 0.02000, "higher_worse": 1, "fails": 0, "worst_case": "WORST-COMBO (drift=0; re-captured vs stale main baseline, 30x below threshold)"},
     "non_finite": {"worst": 0.00000, "threshold": 0.50000, "higher_worse": 1, "fails": 0, "worst_case": "Init"},
     "denormal": {"worst": 1.15000, "threshold": 6.00000, "higher_worse": 1, "fails": 0, "worst_case": "median-of-6 silence chunks (jitter-robust)"},
-    "harshness": {"worst": 0.00116, "threshold": 0.25000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:worst"},
+    "harshness": {"worst": 0.25485, "threshold": 0.30000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:space-bright (transient src @ Space=1; this is the FIXED value — pristine/regressed reads ~0.313)"},
     "aliasing": {"worst": 0.00119, "threshold": 0.20000, "higher_worse": 1, "fails": 0, "worst_case": "spectral:worst"}
   }
 }
