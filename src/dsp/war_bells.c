@@ -280,15 +280,29 @@ static void v2_process(void *inst, int16_t *audio, int frames) {
                 float fb = w->shim_m * 0.18f;
                 wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f + fb, (sigR + sdR*0.5f)*0.5f + fb, &rvL, &rvR);
                 float sh = wb_pshift_process(&w->shimM, 0.5f*(rvL+rvR), rt);
-                w->shim_m = wb_softclip(sh);   /* soft-saturate the feedback (no hard-clamp fold = no added aliasing) */
+                /* Band-limit the regeneration INSIDE the loop (~2 kHz one-pole). The octave-up shifter pushes
+                 * energy toward Nyquist; without this, each generation stacks more HF -> a runaway whistle
+                 * (worst on Vast+shimmer presets like Expanse). Filtering the FEEDBACK (not the output) makes
+                 * the rolloff COMPOUND: after ~1-2 octaves the climbing content has fallen below audibility,
+                 * so the halo BLOOMS then DISSOLVES like a real shimmer reverb (Eno/Lexicon/Microcosm) — a
+                 * spiritually-accurate regeneration, not an output band-aid. */
+                w->shim_lp += (sh - w->shim_lp) * 0.30f;
+                w->shim_m = wb_softclip(w->shim_lp);   /* soft-saturate the now-band-limited feedback */
             } else {
                 wb_reverb_process(&w->reverb, (sigL + sdL*0.5f)*0.5f, (sigR + sdR*0.5f)*0.5f, &rvL, &rvR);
                 w->shim_m = 0.0f;
             }
+            /* Space-dependent HF damping on the DELAY return: the feedback softclip's bright harmonics
+             * read as "high-pitched noise" and they GROW with Space. Tie the LP cutoff to Space so it's a
+             * true bypass at low Space (bells stay bright, bit-identical) and tames progressively as Space
+             * rises — fixing the bug exactly where it lives without dulling moderate settings. Reverb is
+             * left intact so rev_tone still shapes it. (Improves on the iOS fixed ~6 kHz return LP.) */
+            float lpc = wb_lerpf(1.0f, 0.50f, spaceEff);   /* 1.0 = passthrough @space0; ~5 kHz @space1 */
+            w->sp_wet_lp_l += (sdL - w->sp_wet_lp_l) * lpc; float sdLt = w->sp_wet_lp_l;
+            w->sp_wet_lp_r += (sdR - w->sp_wet_lp_r) * lpc; float sdRt = w->sp_wet_lp_r;
             /* gain-staging: delay + reverb are summed, so scale the pair (equally — preserves their
-             * balance/texture) to keep the space bus under unity instead of compounding to ~2x. The
-             * Space knob makes up the level; the limiter is left as a rare safety, not a crutch. */
-            float spL = (sdL + rvL) * 0.6f, spR = (sdR + rvR) * 0.6f;
+             * balance/texture) to keep the space bus under unity instead of compounding to ~2x. */
+            float spL = (sdLt + rvL) * 0.6f, spR = (sdRt + rvR) * 0.6f;
             sigL = wb_lerpf(sigL, spL, spaceEff);
             sigR = wb_lerpf(sigR, spR, spaceEff);
         }

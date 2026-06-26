@@ -24,7 +24,11 @@ audio_fx_api_v2_t *move_audio_fx_init_v2(const host_api_v1_t *host);
 /* ---- metric ids + thresholds (artifact boundaries; higher = worse unless noted) ---- */
 enum { M_SILENCE, M_RUNAWAY, M_TRUEPEAK, M_CLICKS, M_DC, M_NONFIN, M_DENORM, M_HARSH, M_ALIAS, M_N };
 static const char *MNAME[M_N] = { "silence","runaway","true_peak","discontinuity","dc_offset","non_finite","denormal","harshness","aliasing" };
-static const double MTHR[M_N] = { 0.004,     0.92,     0.999,      90.0,           0.02,       0.5,         6.0,       0.25,      0.20 };
+/* harshness ceiling is 0.30 (not 0.25): the spectral:space-bright probe drives a transient/noise-rich
+ * source whose intrinsic broadband HF sits ~0.25, so a tone-calibrated 0.25 would false-fail the good
+ * build. Tone spectral cases sit ~0.001 (250x under), and the baseline ratchet — not this absolute gate —
+ * is what protects each case from regression. */
+static const double MTHR[M_N] = { 0.004,     0.92,     0.999,      90.0,           0.02,       0.5,         6.0,       0.30,      0.20 };
 static const int    MHW [M_N] = { 0,         1,        1,          1,              1,          1,           1,         1,         1   };  /* higher_worse */
 
 typedef struct { double worst; int fails; char worst_case[48]; int seen; } agg_t;
@@ -47,7 +51,7 @@ static void gen(int16_t *buf, int n, int mode, double *ph, double f0, long *t){
 }
 
 /* ---- one case ---- */
-typedef struct { char name[48]; char key[24][24]; char val[24][24]; int nset; int spectral; int transition; } caseT;
+typedef struct { char name[48]; char key[24][24]; char val[24][24]; int nset; int spectral; int src_mix; int transition; } caseT;
 static const char *PSALL[22]={"Init","Arp","Stutr","Chop","Glass","Seq","Stack","Cloud","Drone","Birds",
                               "Taps","Warp","Sheen","Motn","Evolv","Scale","Bloom","Trails","Spiral",
                               "Drifting","Expanse","MonoTap"};
@@ -61,12 +65,15 @@ static void run_case(audio_fx_api_v2_t *api, const caseT *c, double out[M_N]){
     int16_t buf[256]; double ph=0; long t=0;
 
     if(c->spectral){
-        for(int b=0;b<700;b++){ gen(buf,128,SRC_TONE,&ph,220.0,&t); api->process_block(inst,buf,128); } /* settle ~2s */
+        int src = c->src_mix ? SRC_MIX : SRC_TONE;   /* src_mix = transient-rich source (catches the space-delay brightness bug) */
+        for(int b=0;b<700;b++){ gen(buf,128,src,&ph,220.0,&t); api->process_block(inst,buf,128); } /* settle ~2s */
         static float cap[16384]; int cp=0;
-        while(cp<16384){ gen(buf,128,SRC_TONE,&ph,220.0,&t); api->process_block(inst,buf,128);
+        while(cp<16384){ gen(buf,128,src,&ph,220.0,&t); api->process_block(inst,buf,128);
             for(int i=0;i<128 && cp<16384;i++) cap[cp++]=0.5f*(buf[i*2]+buf[i*2+1])/32768.0f; }
         double thd=0,hf=0; wb_spectral(cap,16384,220.0,44100.0,&thd,&hf);
-        out[M_HARSH]=hf; out[M_ALIAS]=thd;
+        /* HF ratio (harshness) is valid for any source; THD/aliasing assumes a 220 Hz fundamental, so it's
+         * meaningless for the transient/noise source — record 0 there so it doesn't false-positive aliasing. */
+        out[M_HARSH]=hf; out[M_ALIAS]= c->src_mix ? 0.0 : thd;
         api->destroy_instance(inst); return;
     }
 
@@ -147,6 +154,10 @@ int main(void){
     { caseT *c=newcase("spectral:warp");   c->spectral=1; add(c,"preset","Stack"); add(c,"warp","0.95"); add(c,"space","0.6"); }
     { caseT *c=newcase("spectral:shimmer");c->spectral=1; add(c,"preset","Sheen"); }
     { caseT *c=newcase("spectral:worst");  c->spectral=1; add(c,"preset","Stack"); add(c,"shimmer","1"); add(c,"sustain","1"); add(c,"space","1"); add(c,"reverb_mode","3"); }
+    /* regression probe for the space-delay brightness bug: transient-rich source + Space=1 (the exact
+     * scenario the bug lived in — the tone-based spectral cases above never excite it). Gates the HF
+     * ratio so a future change that re-brightens the space feedback trips the harshness baseline. */
+    { caseT *c=newcase("spectral:space-bright"); c->spectral=1; c->src_mix=1; add(c,"preset","Birds"); add(c,"space","1"); }
 
     /* run all, aggregate per metric */
     agg_t ag[M_N]; for(int k=0;k<M_N;k++){ ag[k].worst = MHW[k]?-1e9:1e9; ag[k].fails=0; ag[k].seen=0; ag[k].worst_case[0]=0; }

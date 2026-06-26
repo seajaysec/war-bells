@@ -51,6 +51,36 @@ if ! "${CROSS}nm" -D "$OUT/${MOD_ID}.so" | grep -q ' T move_audio_fx_init_v2$'; 
     exit 1
 fi
 
+# --- ABI gate: the .so MUST dlopen on the Move, or the slot silently stays blank ---
+# The Move runs glibc 2.35 and ships NO libmvec.so.1. A toolchain newer than the
+# device (e.g. ubuntu-latest = glibc 2.39) combined with -O3 -ffast-math makes GCC
+# auto-vectorize sinf/cosf/powf into libmvec calls versioned GLIBC_2.38/2.39 — a .so
+# the host cannot dlopen, so the chain host drops the plugin with no error. We fail
+# the build HERE rather than ship that. The fix is always to correct the toolchain
+# (build in the pinned Docker image); never relax this gate to make a build pass.
+MOVE_GLIBC="${MOVE_GLIBC:-2.35}"
+RE="${CROSS}readelf"
+SO="$OUT/${MOD_ID}.so"
+
+if "$RE" -d "$SO" | grep -qE 'NEEDED.*\blibmvec\b'; then
+    echo "ERROR: ${MOD_ID}.so links libmvec.so.1 — absent on the Move (it would never load)." >&2
+    "$RE" -d "$SO" | grep NEEDED >&2
+    echo "  Cause: glibc>=2.39 toolchain auto-vectorized libm under -ffast-math." >&2
+    echo "  Fix: build in the pinned Docker image (debian:bookworm-slim), not a host gcc." >&2
+    exit 1
+fi
+
+MAXG="$("$RE" -V "$SO" 2>/dev/null | grep -oE 'GLIBC_2\.[0-9]+' | sort -uV | tail -1)"
+MAXG="${MAXG#GLIBC_}"
+if [ -n "$MAXG" ] && [ "$(printf '%s\n%s\n' "$MAXG" "$MOVE_GLIBC" | sort -V | tail -1)" != "$MOVE_GLIBC" ]; then
+    echo "ERROR: ${MOD_ID}.so needs glibc $MAXG but the Move has only $MOVE_GLIBC." >&2
+    echo "  Required versions:" >&2
+    "$RE" -V "$SO" 2>/dev/null | grep -oE 'GLIBC_2\.[0-9]+' | sort -uV | sed 's/^/    /' >&2
+    echo "  Fix: build in the pinned Docker image (debian:bookworm-slim), not a host gcc." >&2
+    exit 1
+fi
+echo "ABI gate OK: max glibc = GLIBC_${MAXG:-none} (Move has $MOVE_GLIBC), no libmvec."
+
 cp src/module.json "$OUT/"
 cp ui_chain.js "$OUT/"
 [ -f help.json ] && cp help.json "$OUT/"

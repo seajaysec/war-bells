@@ -94,11 +94,15 @@ typedef struct wb {
      * loop DC blocker. warp_eff = per-block warp amount (knob + Motion). */
     double spdl_smooth; float warp_eff;
     float sp_lp_l, sp_lp_r, sp_dcx_l, sp_dcy_l, sp_dcx_r, sp_dcy_r;
+    float sp_wet_lp_l, sp_wet_lp_r;   /* Space-scaled LP on the space-delay RETURN (bypass at low Space ->
+                                       * ~5 kHz at full Space) — tames feedback-softclip brightness */
 
     /* shimmer reverb: ONE mono pitch-shifter fed back into the reverb tail (bounded) */
     int   shimmer;                    /* 0 Off 1 Oct+ 2 Oct- 3 5th */
     wb_pshift_t shimM;
     float shim_m;
+    float shim_lp;                    /* band-limit the regen INSIDE the loop so the octave-up halo
+                                       * blooms then dissolves (Eno/Lexicon shimmer) — not a runaway whistle */
 
     /* runtime */
     int   grain_env;                  /* 0 Soft 1 Pluck 2 Swell 3 Gate */
