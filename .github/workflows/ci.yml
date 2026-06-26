@@ -34,8 +34,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install aarch64 cross-compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      # Do NOT install gcc-aarch64-linux-gnu on the runner (glibc 2.39). It would
+      # auto-vectorize libm into libmvec/GLIBC_2.39 calls the Move (glibc 2.35) can't
+      # dlopen. build.sh cross-compiles in the pinned Docker image (glibc 2.36) when no
+      # host cross-gcc is present, and its ABI gate fails on any glibc>2.35 / libmvec dep.
 
       - name: Set up Emscripten
         uses: mymindstorm/setup-emsdk@v16
@@ -48,3 +50,13 @@ jobs:
 
       - name: Cross-compile war_bells.so + pack module tarball
         run: bash scripts/build.sh
+
+      # Publish the CI-built tarball as a run artifact so it can be installed on a real Move for
+      # on-device validation BEFORE cutting a release / submitting to the catalog. This is the binary
+      # GitHub Actions actually produced (pinned-Docker toolchain) — the thing to trust, not a local build.
+      - name: Upload module tarball (test the CI build on-device)
+        uses: actions/upload-artifact@v4
+        with:
+          name: war_bells-module
+          path: dist/war_bells-module.tar.gz
+          if-no-files-found: error
